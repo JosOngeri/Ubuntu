@@ -16,6 +16,7 @@
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^1.7.0",
     "multer": "^2.1.1",
+    "pg": "^8.20.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.48.0",

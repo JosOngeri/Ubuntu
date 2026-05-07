@@ -38,7 +38,7 @@ export default function MyApplications() {
     const fetchApplications = async () => {
       setLoading(true);
       try {
-        const res = await api.get('/jobs/my-applications');
+        const res = await api.get('/api/jobs/my-applications');
         setApplications(Array.isArray(res.data) ? res.data.map(normalizeApplication) : []);
       } catch {
         toast.error('Failed to load your applications');

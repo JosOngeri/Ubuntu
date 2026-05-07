@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -29,15 +29,44 @@ import AdminDashboard from './pages/admin/Dashboard';
 import AdminEmployees from './pages/admin/Employees';
 import AdminUsers from './pages/admin/Users';
 import Permissions from './pages/admin/Permissions';
+import AdminSettings from './pages/admin/Settings';
 import UserDetail from './pages/admin/UserDetail';
 import EmployeeDetail from './pages/admin/EmployeeDetail';
 
 // Manager & Employee Pages
 import ManagerDashboard from './pages/manager/Dashboard';
+import ManagerLeaves from './pages/manager/Leaves';
 import EmployeeDashboard from './pages/employee/Dashboard';
+import EmployeeLeaves from './pages/employee/Leaves';
+import LeaveRequest from './pages/leave/Request';
+import LeaveApprovals from './pages/leave/Approvals';
+import LeaveStatutory from './pages/leave/Statutory';
 import Punch from './pages/employee/Punch';
 import AttendancePage from './pages/shared/Attendance';
 import AttendanceDetail from './pages/shared/AttendanceDetail';
+
+// Payroll Pages
+import PayrollDisburse from './pages/payroll/Disburse';
+import EmployeePayslips from './pages/payroll/Payslips';
+
+// KPI Pages
+import KpiManage from './pages/kpi/Manage';
+import MyGoals from './pages/kpi/MyGoals';
+
+// Contractor Pages
+import ContractorDashboard from './pages/contractor/Dashboard';
+import ContractorProjects from './pages/contractor/Projects';
+import ContractorInvoices from './pages/contractor/Invoices';
+import ContractorPortal from './pages/contractor/Portal';
+
+// Contract Review
+import ContractReview from './pages/contracts/Review';
+
+// Admin Pages
+import AdminKPI from './pages/admin/KPI';
+import AdminLeave from './pages/admin/Leave';
+import AdminPayroll from './pages/admin/Payroll';
+import AdminContract from './pages/admin/Contract';
 
 // Wrappers for dynamic routes
 function JobApplicationFormWrapper() {
@@ -53,6 +82,17 @@ function ApplicantReviewDashboardWrapper() {
 function ApplicantDetailWrapper() {
   const { jobId, applicantId } = useParams();
   return <ApplicantDetail jobId={jobId} applicantId={applicantId} />;
+}
+
+function DashboardRedirect() {
+  const { user, loading } = useAuth()
+  if (loading) return <div className="loading-screen">Loading...</div>
+  if (!user) return <Navigate to="/login" replace />
+
+  if (user.role === 'admin' || user.role === 'hr') return <Navigate to="/admin/dashboard" replace />
+  if (user.role === 'manager' || user.role === 'supervisor') return <Navigate to="/manager/dashboard" replace />
+  if (user.role === 'contractor') return <Navigate to="/contractor/dashboard" replace />
+  return <Navigate to="/employee/dashboard" replace />
 }
 
 function App() {
@@ -118,6 +158,14 @@ function App() {
               }
             />
             <Route
+              path="/admin/settings"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/admin/attendance"
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
@@ -130,6 +178,38 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AttendanceDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/kpis"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminKPI />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/leaves"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminLeave />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/payroll"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <PayrollDisburse />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/contracts"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminContract />
                 </ProtectedRoute>
               }
             />
@@ -159,6 +239,38 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/manager/leaves"
+              element={
+                <ProtectedRoute allowedRoles={['manager', 'supervisor']}>
+                  <ManagerLeaves />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/leave/request"
+              element={
+                <ProtectedRoute allowedRoles={['employee']}>
+                  <LeaveRequest />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/leave/approvals"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
+                  <LeaveApprovals />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/leave/statutory"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                  <LeaveStatutory />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Employee Routes */}
             <Route
@@ -166,6 +278,22 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['employee']}>
                   <EmployeeDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employee/leaves"
+              element={
+                <ProtectedRoute allowedRoles={['employee']}>
+                  <EmployeeLeaves />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payroll/payslips"
+              element={
+                <ProtectedRoute allowedRoles={['employee']}>
+                  <EmployeePayslips />
                 </ProtectedRoute>
               }
             />
@@ -190,6 +318,75 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['employee']}>
                   <AttendanceDetail />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Contractor Routes */}
+            <Route
+              path="/contractor/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['contractor']}>
+                  <ContractorDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contractor/projects"
+              element={
+                <ProtectedRoute allowedRoles={['contractor']}>
+                  <ContractorProjects />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contractor/invoices"
+              element={
+                <ProtectedRoute allowedRoles={['contractor']}>
+                  <ContractorInvoices />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contractor/portal"
+              element={
+                <ProtectedRoute allowedRoles={['contractor']}>
+                  <ContractorPortal />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/payroll/disburse"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                  <PayrollDisburse />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/kpi/manage"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
+                  <KpiManage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/kpi/my-goals"
+              element={
+                <ProtectedRoute allowedRoles={['employee']}>
+                  <MyGoals />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/contracts/review"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                  <ContractReview />
                 </ProtectedRoute>
               }
             />
@@ -240,7 +437,7 @@ function App() {
             <Route
               path="/profile/view"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'manager', 'hr', 'employee']}>
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'hr', 'employee', 'contractor']}>
                   <ProfileView />
                 </ProtectedRoute>
               }
@@ -248,8 +445,17 @@ function App() {
             <Route
               path="/profile/update"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'manager', 'hr', 'employee']}>
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'hr', 'employee', 'contractor']}>
                   <ProfileUpdateForm />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor', 'employee', 'contractor', 'hr']}>
+                  <DashboardRedirect />
                 </ProtectedRoute>
               }
             />

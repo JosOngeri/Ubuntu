@@ -59,16 +59,6 @@ class User {
     this.updatedAt = data.updatedAt ?? data.updated_at ?? null;
   }
 
-  static async findAll() {
-    const { rows } = await query('SELECT * FROM users ORDER BY created_at DESC');
-    return rows.map(User.fromRow);
-  }
-
-  async delete() {
-    if (!this.id) return;
-    await query('DELETE FROM users WHERE id = $1', [this.id]);
-  }
-
   static fromRow(row) {
     if (!row) {
       return null;
@@ -88,16 +78,6 @@ class User {
     });
   }
   
-  static async findAll() {
-    const { rows } = await query('SELECT * FROM users ORDER BY created_at DESC');
-    return rows.map(User.fromRow);
-  }
-  
-  async delete() {
-    if (!this.id) return;
-    await query('DELETE FROM users WHERE id = $1', [this.id]);
-  }
-
   static async findAll() {
     const { rows } = await query('SELECT * FROM users ORDER BY created_at DESC');
     return rows.map(User.fromRow);

@@ -45,7 +45,7 @@ Key features:
    npm run dev
    ```
 
-3. **Login** at `http://localhost:5173`
+3. **Login** at `https://ubuntu-hrms12.vercel.app`
    - Use: `admin` / `password123`
 
 See [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for more details.
@@ -127,7 +127,7 @@ ubuntu-hrms/
 1. Navigate to frontend folder: `cd ubuntu-hrms-frontend`
 2. Install dependencies: `npm install`
 3. Start dev server: `npm run dev`
-4. Open `http://localhost:5173`
+4. Open `https://ubuntu-hrms12.vercel.app`
 
 ### Full Details
 👉 See [SETUP_GUIDE.md](SETUP_GUIDE.md) for step-by-step instructions

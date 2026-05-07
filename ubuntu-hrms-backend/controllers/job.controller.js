@@ -2,6 +2,7 @@ const Job = require('../models/Job.model');
 const JobApplication = require('../models/JobApplication.model');
 const User = require('../models/User.model');
 const path = require('path');
+const { query } = require('../config/db');
 
 const parseJsonField = (value, fallback = null) => {
   if (value === undefined || value === null || value === '') return fallback;
@@ -99,18 +100,13 @@ const jobController = {
         additionalInfo: additionalInfo || '',
       };
 
-      const application = await JobApplication.create({
-        jobId,
-        applicantName,
-        applicantEmail,
-        applicantPhone,
-        cvPath,
-        coverLetter,
-        applicationData,
-        userId,
-        status: 'pending',
-      });
-      res.status(201).json(application);
+      const { rows } = await query(
+        `INSERT INTO job_applications 
+         (jobId, applicantName, applicantEmail, applicantPhone, cvPath, coverLetter, applicationData, user_id, status, appliedAt) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()) RETURNING *`,
+        [jobId, applicantName, applicantEmail, applicantPhone, cvPath, coverLetter, applicationData, userId, 'pending']
+      );
+      res.status(201).json(rows[0]);
     } catch (err) {
       res.status(400).json({ msg: 'Failed to apply', error: err.message });
     }
@@ -132,28 +128,36 @@ const jobController = {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ msg: 'Unauthorized' });
 
-      const applications = await JobApplication.findByUserId(userId);
-      if (applications.length > 0) {
-        return res.json(applications);
+      // Fallback: check if the user is an employee and has an email there
+      const { rows: userRows } = await query(
+        `SELECT u.email as user_email, e.email as employee_email 
+         FROM users u 
+         LEFT JOIN employees e ON e.user_id = u.id 
+         WHERE u.id = $1`,
+        [userId]
+      );
+      const email = userRows[0]?.user_email || userRows[0]?.employee_email;
+
+      // Fetch applications matching user_id OR their registered email
+      const queryText = email
+        ? `SELECT * FROM job_applications WHERE user_id = $1 OR LOWER(applicantEmail) = LOWER($2) ORDER BY appliedAt DESC`
+        : `SELECT * FROM job_applications WHERE user_id = $1 ORDER BY appliedAt DESC`;
+      
+      const params = email ? [userId, email] : [userId];
+      const { rows } = await query(queryText, params);
+
+      // Automatically link unlinked applications found by email
+      if (email) {
+        const unlinkedIds = rows.filter(r => !r.user_id).map(r => r.id);
+        if (unlinkedIds.length > 0) {
+          await query(
+            `UPDATE job_applications SET user_id = $1, linked_via = 'login_fetch', linked_at = NOW() WHERE id = ANY($2::int[])`,
+            [userId, unlinkedIds]
+          ).catch(err => console.warn('Failed to backfill application links:', err));
+        }
       }
 
-      const user = await User.findById(userId);
-      const email = user?.email;
-      if (!email) return res.json([]);
-
-      const fallbackApplications = await JobApplication.findByApplicantEmail(email);
-      if (fallbackApplications.length > 0) {
-        return res.json(fallbackApplications);
-      }
-
-      await JobApplication.backfillLinks();
-      const backfilledApplications = await JobApplication.findByUserId(userId);
-      if (backfilledApplications.length > 0) {
-        return res.json(backfilledApplications);
-      }
-
-      const emailApplications = await JobApplication.findByApplicantEmail(email);
-      res.json(emailApplications);
+      res.json(rows);
     } catch (err) {
       res.status(500).json({ msg: 'Failed to fetch your applications', error: err.message });
     }

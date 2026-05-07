@@ -64,13 +64,18 @@ export const attendanceAPI = {
 // Payroll
 export const payrollAPI = {
   calculate: (period) => api.get(`/api/payroll/calculate/${period}`),
-  disburse: (data) => api.post('/api/payroll/disburse', data),
-  getPayments: () => api.get('/api/payroll/payments'),
+  disburse: () => api.post('/api/payroll/disburse'),
+  getPayments: (status) => api.get('/api/payroll', { params: status ? { status } : undefined }),
+  getPayslips: () => api.get('/api/payroll'),
+  getApprovedPayslips: () => api.get('/api/payroll', { params: { status: 'Approved' } }),
+  mpesaCallback: (data) => api.post('/api/payroll/mpesa-callback', data),
 }
 
 // KPIs
 export const kpiAPI = {
-  getByEmployeeId: (employeeId) => api.get(`/api/kpis/${employeeId}`),
+  getEmployeeKPIs: (employeeId) => api.get(`/api/kpi/employee/${employeeId}`),
+  assignKPI: (data) => api.post('/api/kpi/assign', data),
+  evaluateKPI: (id, data) => api.put(`/api/kpi/${id}/evaluate`, data),
   create: (data) => api.post('/api/kpis', data),
   update: (id, data) => api.put(`/api/kpis/${id}`, data),
   delete: (id) => api.delete(`/api/kpis/${id}`),
@@ -78,7 +83,40 @@ export const kpiAPI = {
 
 // Leaves
 export const leaveAPI = {
-  getByEmployeeId: (employeeId) => api.get(`/api/leaves/${employeeId}`),
+  getAll: () => api.get('/api/leaves'),
+  getBalance: (employeeId) => api.get(`/api/leaves/balance/${employeeId}`),
+  requestLeave: (data) => {
+    const formData = new FormData();
+    Object.entries(data || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      if (key === 'attachment' && value instanceof File) {
+        formData.append('attachment', value);
+        return;
+      }
+      formData.append(key, value);
+    });
+
+    return api.post('/api/leaves/request', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  updateLeaveStatus: (id, approverOrPayload, statusMaybe) => {
+    const payload =
+      approverOrPayload && typeof approverOrPayload === 'object' && !Array.isArray(approverOrPayload)
+        ? approverOrPayload
+        : { approverId: approverOrPayload, status: statusMaybe };
+
+    return api.put(`/api/leaves/${id}/status`, payload);
+  },
+  uploadDocument: (id, file) => {
+    const formData = new FormData();
+    formData.append('attachment', file);
+    return api.put(`/api/leaves/${id}/upload-doc`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
   create: (data) => api.post('/api/leaves', data),
   update: (id, data) => api.put(`/api/leaves/${id}`, data),
   delete: (id) => api.delete(`/api/leaves/${id}`),
@@ -90,6 +128,13 @@ export const contractAPI = {
   create: (data) => api.post('/api/contracts', data),
   update: (id, data) => api.put(`/api/contracts/${id}`, data),
   delete: (id) => api.delete(`/api/contracts/${id}`),
+}
+
+// Contractors
+export const contractorAPI = {
+  getStats: () => api.get('/api/contractors/stats'),
+  getProjects: () => api.get('/api/contractors/projects'),
+  getInvoices: () => api.get('/api/contractors/invoices'),
 }
 
 export default api

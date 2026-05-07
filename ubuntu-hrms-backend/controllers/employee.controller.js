@@ -4,10 +4,13 @@ const Attendance = require('../models/Attendance.model');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { sendEmail } = require('../utils/email');
+const { query } = require('../config/db');
 const {
   isValidObjectId,
   validateEmployeePayload,
 } = require('../utils/validation');
+
+const getCurrentYear = () => new Date().getFullYear();
 
 const buildUniqueUsername = async ({ firstName, lastName }) => {
   const base = `${firstName || ''}.${lastName || ''}`
@@ -141,12 +144,32 @@ const addEmployee = async (req, res) => {
     try {
       newEmployee = new Employee({ ...normalized, userId: user.id });
       await newEmployee.save();
+
+      // Auto-allocate annual leave balance for new employee
+      try {
+        const year = getCurrentYear();
+        const employeeId = newEmployee.id;
+        await query(
+          `INSERT INTO leave_balances (employee_id, year, annual, sick, maternity_paternity, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+           ON CONFLICT (employee_id, year) DO UPDATE SET 
+             annual = EXCLUDED.annual,
+             sick = EXCLUDED.sick,
+             maternity_paternity = EXCLUDED.maternity_paternity,
+             updated_at = NOW()
+           RETURNING *`,
+          [employeeId, year, 30, 15, 30]
+        );
+      } catch (leaveError) {
+        console.warn('Failed to auto-allocate leave balance:', leaveError);
+        // Don't fail employee creation if leave balance allocation fails
+      }
     } catch (error) {
       await user.delete();
       throw error;
     }
 
-    const loginLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
+    const loginLink = `${process.env.FRONTEND_URL || 'https://ubuntu-hrms12.vercel.app'}/login`;
     const emailResult = await sendEmail({
       to: normalized.email,
       subject: 'Welcome to Ubuntu HRMS - Your Login Credentials',

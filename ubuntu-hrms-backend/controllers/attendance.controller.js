@@ -1,5 +1,6 @@
 const Attendance = require('../models/Attendance.model');
 const Employee = require('../models/Employee.model');
+const { pool, query } = require('../config/db');
 const {
   applyPunchState,
   isValidObjectId,
@@ -55,9 +56,31 @@ const pushBiometric = async (req, res) => {
 };
 
 
-// Office location and allowed radius (meters)
-const OFFICE_LOCATION = { lat: -1.19293, lng: 36.93057 }; // Updated to match your current location
-const ALLOWED_RADIUS_METERS = 1000;
+// Fetch office location from settings
+const getOfficeLocation = async () => {
+  try {
+    const result = await query(
+      `SELECT setting_value FROM settings WHERE setting_key IN ('OFFICE_LATITUDE', 'OFFICE_LONGITUDE', 'OFFICE_RADIUS_METERS')`
+    );
+    
+    let lat = -1.19293;
+    let lng = 36.93057;
+    let radius = 1000;
+    
+    result.rows.forEach(row => {
+      if (row.setting_key === 'OFFICE_LATITUDE') lat = parseFloat(row.setting_value);
+      if (row.setting_key === 'OFFICE_LONGITUDE') lng = parseFloat(row.setting_value);
+      if (row.setting_key === 'OFFICE_RADIUS_METERS') radius = parseInt(row.setting_value);
+    });
+    
+    return { lat, lng, radius };
+  } catch (err) {
+    console.error('Error fetching office location from settings:', err);
+    // Return defaults if error
+    return { lat: -1.19293, lng: 36.93057, radius: 1000 };
+  }
+};
+
 function haversineDistance(lat1, lng1, lat2, lng2) {
   function toRad(x) { return x * Math.PI / 180; }
   const R = 6371000; // meters
@@ -101,12 +124,22 @@ const manualSelfPunch = async (req, res) => {
       return res.status(404).json({ msg: 'Employee not found' });
     }
 
+    // Check if employee is allowed to self-record attendance
+    if (!employee.can_self_record_attendance) {
+      return res.status(403).json({ 
+        msg: 'You are not allowed to self-record attendance. Please contact your manager.' 
+      });
+    }
+
     if (employee.biometricDeviceId && biometricDeviceId && employee.biometricDeviceId !== biometricDeviceId) {
       return res.status(400).json({
         msg: 'Biometric device mismatch for logged-in user',
         expectedBiometricDeviceId: employee.biometricDeviceId,
       });
     }
+
+    // Fetch office location from settings
+    const officeLocation = await getOfficeLocation();
 
     // Geolocation validation
     const hasValidGeo =
@@ -117,9 +150,9 @@ const manualSelfPunch = async (req, res) => {
     if (hasValidGeo) {
       const dist = haversineDistance(
         Number(geolocation.lat), Number(geolocation.lng),
-        OFFICE_LOCATION.lat, OFFICE_LOCATION.lng
+        officeLocation.lat, officeLocation.lng
       );
-      if (dist > ALLOWED_RADIUS_METERS && !isEmployeeAllowedRemote(employee)) {
+      if (dist > officeLocation.radius && !isEmployeeAllowedRemote(employee)) {
         return res.status(403).json({ msg: 'You are not at the allowed work location.' });
       }
     } else {

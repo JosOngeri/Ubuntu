@@ -4,7 +4,7 @@ const http = require('node:http');
 const jwt = require('jsonwebtoken');
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
-process.env.FRONTEND_ORIGIN = 'http://localhost:5173';
+process.env.FRONTEND_ORIGIN = 'https://ubuntu-hrms12.vercel.app';
 
 const app = require('../app');
 const Employee = require('../models/Employee.model');
