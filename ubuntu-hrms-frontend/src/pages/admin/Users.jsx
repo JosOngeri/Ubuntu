@@ -5,10 +5,11 @@ import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 import Input from '../../components/common/Input';
-import { userAPI } from '../../services/api';
+import api, { userAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import DashboardLayout from '../../components/DashboardLayout'
 import { downloadPdfReport } from '../../utils/reportExport'
+import { BsEye, BsPencil, BsTrash, BsCheckCircle } from 'react-icons/bs';
 
 
 const AdminUsers = () => {
@@ -20,6 +21,9 @@ const AdminUsers = () => {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [approveUser, setApproveUser] = useState(null);
   const [approveDetails, setApproveDetails] = useState({ wageRate: '', department: '' });
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editUser, setEditUser] = useState(null);
+  const [editData, setEditData] = useState({ username: '', email: '', role: 'employee', status: 'active' });
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -77,6 +81,24 @@ const AdminUsers = () => {
     }
   };
 
+  const handleEdit = async (e) => {
+    e.preventDefault();
+    try {
+      // Fallback in case userAPI.update is not explicitly defined in api.js
+      if (userAPI.update) {
+        await userAPI.update(editUser.id, editData);
+      } else {
+        await api.put(`/api/users/${editUser.id}`, editData);
+      }
+      toast.success('User updated successfully');
+      setShowEditModal(false);
+      setEditUser(null);
+      fetchUsers();
+    } catch (err) {
+      toast.error(err?.response?.data?.msg || err?.response?.data?.error || 'Update failed');
+    }
+  };
+
   const columns = [
     { key: 'username', label: 'Username' },
     { key: 'email', label: 'Email' },
@@ -86,12 +108,25 @@ const AdminUsers = () => {
       key: 'actions',
       label: 'Actions',
       render: (_, row) => (
-        <div className="flex gap-2">
-          <Button size="sm" variant="primary" onClick={() => navigate(`/admin/users/${row.id}`)}>View Details</Button>
+        <div className="flex gap-2 items-center">
+          <button className="p-1.5 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded dark:bg-blue-900/30 dark:text-blue-400 transition" title="View Details" onClick={() => navigate(`/admin/users/${row.id}`)}>
+            <BsEye size={16} />
+          </button>
+          <button className="p-1.5 bg-amber-100 text-amber-600 hover:bg-amber-200 rounded dark:bg-amber-900/30 dark:text-amber-400 transition" title="Edit User" onClick={() => { 
+            setEditUser(row); 
+            setEditData({ username: row.username, email: row.email, role: row.role, status: row.status });
+            setShowEditModal(true); 
+          }}>
+            <BsPencil size={16} />
+          </button>
           {row.status !== 'active' && (
-            <Button size="sm" variant="success" onClick={() => { setApproveUser(row); setShowApproveModal(true); }}>Approve</Button>
+            <button className="p-1.5 bg-green-100 text-green-600 hover:bg-green-200 rounded dark:bg-green-900/30 dark:text-green-400 transition" title="Approve User" onClick={() => { setApproveUser(row); setShowApproveModal(true); }}>
+              <BsCheckCircle size={16} />
+            </button>
           )}
-          <Button size="sm" variant="danger" onClick={() => handleDelete(row.id)}>Delete</Button>
+          <button className="p-1.5 bg-red-100 text-red-600 hover:bg-red-200 rounded dark:bg-red-900/30 dark:text-red-400 transition" title="Delete User" onClick={() => handleDelete(row.id)}>
+            <BsTrash size={16} />
+          </button>
         </div>
       ),
     },
@@ -200,6 +235,33 @@ const AdminUsers = () => {
           <div className="flex gap-2 mt-4">
             <Button type="submit" variant="primary">Approve</Button>
             <Button type="button" variant="ghost" onClick={() => setShowApproveModal(false)}>Cancel</Button>
+          </div>
+        </form>
+      </Modal>
+      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Edit User">
+        <form onSubmit={handleEdit} className="space-y-4">
+          <Input label="Username" value={editData.username} onChange={e => setEditData({ ...editData, username: e.target.value })} required />
+          <Input label="Email" type="email" value={editData.email} onChange={e => setEditData({ ...editData, email: e.target.value })} required />
+          <div>
+            <label className="block mb-1 text-sm font-medium text-slate-700 dark:text-slate-300">Role</label>
+            <select value={editData.role} onChange={e => setEditData({ ...editData, role: e.target.value })} className="form-select w-full">
+              <option value="employee">Employee</option>
+              <option value="hr">HR</option>
+              <option value="manager">Manager</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div>
+            <label className="block mb-1 text-sm font-medium text-slate-700 dark:text-slate-300">Status</label>
+            <select value={editData.status} onChange={e => setEditData({ ...editData, status: e.target.value })} className="form-select w-full">
+              <option value="active">Active</option>
+              <option value="pending">Pending</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <div className="flex gap-2 mt-4 justify-end">
+            <Button type="submit" variant="primary">Save Changes</Button>
+            <Button type="button" variant="ghost" onClick={() => setShowEditModal(false)}>Cancel</Button>
           </div>
         </form>
       </Modal>
