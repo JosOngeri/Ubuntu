@@ -4,10 +4,17 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { sendEmail } = require('../utils/email');
 
-const buildResetLink = (resetToken) => `${process.env.FRONTEND_URL || 'https://ubuntu-hrms12.vercel.app'}/reset-password?token=${resetToken}`;
+const buildResetLink = (resetToken) => `${process.env.FRONTEND_URL || 'http://localhost:5177'}/reset-password?token=${resetToken}`;
 
 const signAuthToken = (user) => new Promise((resolve, reject) => {
-  const payload = { id: user.id, role: user.role, status: user.status };
+  const payload = { 
+    id: user.id, 
+    role: user.role, 
+    status: user.status,
+    username: user.username,
+    email: user.email,
+    name: user.name || user.username
+  };
 
   jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
     if (err) {

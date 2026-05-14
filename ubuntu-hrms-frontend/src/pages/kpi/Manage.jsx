@@ -32,9 +32,26 @@ export default function KpiManage() {
       setLoading(true)
       const response = await employeeAPI.getAll()
       const employeeList = response.data || []
-      setEmployees(employeeList)
-      if (employeeList.length > 0) {
-        const firstEmployeeId = String(employeeList[0].id || employeeList[0]._id)
+      
+      // Filter employees based on user role and hierarchy
+      let filteredEmployees = []
+      if (user?.role === 'admin') {
+        // Admin can evaluate managers
+        filteredEmployees = employeeList.filter(emp => emp.role === 'manager')
+      } else if (user?.role === 'manager') {
+        // Manager can evaluate supervisors
+        filteredEmployees = employeeList.filter(emp => emp.role === 'supervisor')
+      } else if (user?.role === 'supervisor') {
+        // Supervisor can evaluate employees
+        filteredEmployees = employeeList.filter(emp => emp.role === 'employee')
+      } else {
+        // Other roles cannot evaluate
+        filteredEmployees = []
+      }
+      
+      setEmployees(filteredEmployees)
+      if (filteredEmployees.length > 0) {
+        const firstEmployeeId = String(filteredEmployees[0].id || filteredEmployees[0]._id)
         setSelectedEmployeeId((currentValue) => currentValue || firstEmployeeId)
       }
       setError('')
@@ -107,6 +124,34 @@ export default function KpiManage() {
     }
   }
 
+  const getEvaluationInfo = () => {
+    if (user?.role === 'admin') {
+      return {
+        title: 'Admin Evaluation',
+        description: 'As an Admin, you can evaluate Managers on organizational leadership, business development, and strategic planning.',
+        canEvaluate: employees.length > 0
+      }
+    } else if (user?.role === 'manager') {
+      return {
+        title: 'Manager Evaluation',
+        description: 'As a Manager, you can evaluate Supervisors on team leadership, resource management, and process improvement.',
+        canEvaluate: employees.length > 0
+      }
+    } else if (user?.role === 'supervisor') {
+      return {
+        title: 'Supervisor Evaluation',
+        description: 'As a Supervisor, you can evaluate Employees on task management, performance coaching, and work quality.',
+        canEvaluate: employees.length > 0
+      }
+    } else {
+      return {
+        title: 'No Evaluation Access',
+        description: 'Your role does not have evaluation permissions. Please contact your administrator.',
+        canEvaluate: false
+      }
+    }
+  }
+
   const openScoreModal = (kpi) => {
     setActiveKpi(kpi)
     setScoreForm({ achievedValue: kpi.achieved_value ?? '' })
@@ -135,8 +180,27 @@ export default function KpiManage() {
     <DashboardLayout>
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight text-slate-950 dark:text-white">KPI Management</h1>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-          Select a team member, assign quarterly goals, and record achieved metrics at the end of the cycle.
+        <div className="mt-2 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+              {getEvaluationInfo().title}
+            </p>
+          </div>
+          <p className="mt-2 text-sm text-blue-700 dark:text-blue-300">
+            {getEvaluationInfo().description}
+          </p>
+          {!getEvaluationInfo().canEvaluate && (
+            <p className="mt-2 text-sm text-red-600 dark:text-red-400 font-medium">
+              ⚠️ You don't have permission to evaluate employees at this level.
+            </p>
+          )}
+        </div>
+        <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+          {getEvaluationInfo().canEvaluate 
+            ? `Select a team member to evaluate, assign quarterly goals, and record achieved metrics at the end of the cycle.`
+            : 'Contact your administrator if you need evaluation access.'
+          }
         </p>
       </div>
 

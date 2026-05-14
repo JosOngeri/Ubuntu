@@ -50,7 +50,7 @@ pnpm dev
 # OR
 npm run dev
 
-# Application opens at: http://localhost:5173
+# Application opens at: http://localhost:5177
 ```
 
 ## 5. Login & Explore (2 minutes)

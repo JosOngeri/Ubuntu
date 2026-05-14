@@ -8,7 +8,7 @@ const statutoryTypes = ['maternity']
 const buildAttachmentUrl = (path) => {
   if (!path) return ''
   if (/^https?:\/\//i.test(path)) return path
-  return `${import.meta.env.VITE_API_URL || 'https://ubuntu-hrms-epmc.onrender.com'}${path.startsWith('/') ? '' : '/'}${path}`
+  return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${path.startsWith('/') ? '' : '/'}${path}`
 }
 
 export default function LeaveStatutory() {

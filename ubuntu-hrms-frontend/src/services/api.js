@@ -10,7 +10,7 @@ export const userAPI = {
 };
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://ubuntu-hrms-epmc.onrender.com'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -136,6 +136,17 @@ export const contractorAPI = {
   getStats: () => api.get('/api/contractors/stats'),
   getProjects: () => api.get('/api/contractors/projects'),
   getInvoices: () => api.get('/api/contractors/invoices'),
+  getRecentProjects: () => api.get('/api/contractors/projects/recent'),
+  getRecentInvoices: () => api.get('/api/contractors/invoices/recent'),
+  createProject: (data) => api.post('/api/contractors/projects', data),
+  updateProject: (id, data) => api.put(`/api/contractors/projects/${id}`, data),
+  deleteProject: (id) => api.delete(`/api/contractors/projects/${id}`),
+  createInvoice: (data) => api.post('/api/contractors/invoices', data),
+  updateInvoice: (id, data) => api.put(`/api/contractors/invoices/${id}`, data),
+  deleteInvoice: (id) => api.delete(`/api/contractors/invoices/${id}`),
+  getProfile: () => api.get('/api/contractors/profile'),
+  updateProfile: (data) => api.put('/api/contractors/profile', data),
+  getReports: (type) => api.get('/api/contractors/reports', { params: { type } }),
 }
 
 export default api

@@ -7,6 +7,7 @@ import Modal from '../../components/common/Modal';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
 import DashboardLayout from '../../components/DashboardLayout'
+import { useAuth } from '../../contexts/AuthContext';
 
 const defaultProfile = {
   // Personal Info
@@ -83,9 +84,12 @@ const normalizeProfile = (raw = {}) => ({
 });
 
 export default function ProfileUpdateForm() {
+  const { refreshPortalProfile } = useAuth();
   const [form, setForm] = useState(defaultProfile);
   const [loading, setLoading] = useState(true);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [savingPortal, setSavingPortal] = useState(false);
+  const [savingAll, setSavingAll] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -117,13 +121,39 @@ export default function ProfileUpdateForm() {
     setForm((prev) => ({ ...prev, [section]: { ...prev[section], [key]: value } }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSavePortal = async (e) => {
     e.preventDefault();
+    if (!form.fullName?.trim()) {
+      toast.error('Full name is required to save your portal profile');
+      return;
+    }
+    if (!form.email?.trim()) {
+      toast.error('Email is required to save your portal profile');
+      return;
+    }
+    setSavingPortal(true);
     try {
       await api.post('/profile/me', form);
+      await refreshPortalProfile();
+      toast.success('Portal profile saved');
+    } catch {
+      toast.error('Could not save portal profile');
+    } finally {
+      setSavingPortal(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSavingAll(true);
+    try {
+      await api.post('/profile/me', form);
+      await refreshPortalProfile();
       setShowSuccess(true);
     } catch {
       toast.error('Update failed');
+    } finally {
+      setSavingAll(false);
     }
   };
 
@@ -136,9 +166,10 @@ export default function ProfileUpdateForm() {
           <Card>
             <h2 className="text-2xl font-bold mb-4">Update Profile</h2>
             <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Personal Info */}
+            {/* Personal Info — portal profile */}
             <div>
-              <h3 className="text-xl font-semibold mb-2">Personal Information</h3>
+              <h3 className="text-xl font-semibold mb-2">Portal profile</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Name and contact shown across the app use this section. Save it separately from the rest of your profile if you only need to update these details.</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input label="Full Name" name="fullName" value={form.fullName} onChange={handleChange} required />
                 <Input label="Email" name="email" value={form.email} onChange={handleChange} required />
@@ -157,6 +188,11 @@ export default function ProfileUpdateForm() {
               <div className="mt-2">
                 <label className="block text-sm font-medium mb-1">Professional Summary</label>
                 <textarea className="form-input w-full" name="summary" value={form.summary} onChange={handleChange} rows={3} />
+              </div>
+              <div className="flex justify-end mt-4">
+                <Button type="button" variant="primary" onClick={handleSavePortal} disabled={savingPortal || savingAll}>
+                  {savingPortal ? 'Saving…' : 'Save portal profile'}
+                </Button>
               </div>
             </div>
 
@@ -251,7 +287,9 @@ export default function ProfileUpdateForm() {
             {/* ... */}
 
             <div className="flex gap-2 justify-end">
-              <Button type="submit" variant="primary">Save</Button>
+              <Button type="submit" variant="primary" disabled={savingAll || savingPortal}>
+                {savingAll ? 'Saving…' : 'Save entire profile'}
+              </Button>
             </div>
           </form>
           <Modal isOpen={showSuccess} onClose={() => setShowSuccess(false)} title="Profile Updated">

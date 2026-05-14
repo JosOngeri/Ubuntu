@@ -3,22 +3,38 @@
    =============================================== */
 
 :root {
-  --primary-color: rgba(67, 112, 55, 1);
-  --primary-dark: rgba(50, 84, 41, 1);
-  --primary-light: rgba(96, 145, 83, 1);
-  --danger-color: #dc2626;
-  --success-color: #16a34a;
-  --warning-color: rgba(211, 127, 55, 1);
-  --bg-light: #ffffff;
-  --bg-dark: #0f172a;
-  --text-light: #1e293b;
-  --text-dark: #f1f5f9;
-  --border-light: #e2e8f0;
-  --border-dark: #334155;
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  /* Ubuntu Brand Colors */
+  --ubuntu-brown: #8B4513;
+  --ubuntu-brown-dark: #654321;
+  --ubuntu-brown-light: #A0522D;
+  --ubuntu-orange: #FF8C00;
+  --ubuntu-orange-dark: #FF6B00;
+  --ubuntu-orange-light: #FFA500;
+  --ubuntu-cream: #FFF8DC;
+  --ubuntu-cream-dark: #F5DEB3;
+  --ubuntu-gold: #DAA520;
+  --ubuntu-gold-dark: #B8860B;
+  --ubuntu-beige: #F5F5DC;
+  --ubuntu-tan: #D2B48C;
+  --ubuntu-sienna: #A0522D;
+  
+  /* Legacy variables for compatibility */
+  --primary-color: #8B4513;
+  --primary-dark: #654321;
+  --primary-light: #A0522D;
+  --danger-color: #DC143C;
+  --success-color: #228B22;
+  --warning-color: #FF8C00;
+  --bg-light: #FFF8DC;
+  --bg-dark: #2F1B14;
+  --text-light: #2F1B14;
+  --text-dark: #FFF8DC;
+  --border-light: #D2B48C;
+  --border-dark: #A0522D;
+  --shadow-sm: 0 1px 2px 0 rgba(139, 69, 19, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(139, 69, 19, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(139, 69, 19, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(139, 69, 19, 0.1);
 }
 
 body.dark-mode {
@@ -36,12 +52,26 @@ body.dark-mode {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--warning-color) 100%);
+  background: linear-gradient(135deg, var(--ubuntu-brown) 0%, var(--ubuntu-orange) 50%, var(--ubuntu-gold) 100%);
   position: relative;
   overflow: hidden;
 }
 
 .auth-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/ankara-background.png');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.1;
+  z-index: 0;
+}
+
+.auth-container::after {
   content: '';
   position: absolute;
   top: -50%;
@@ -51,18 +81,7 @@ body.dark-mode {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 50%;
   animation: float 20s infinite ease-in-out;
-}
-
-.auth-container::after {
-  content: '';
-  position: absolute;
-  bottom: -50%;
-  left: -50%;
-  width: 600px;
-  height: 600px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 50%;
-  animation: float 25s infinite ease-in-out reverse;
+  z-index: 0;
 }
 
 @keyframes float {
@@ -77,7 +96,7 @@ body.dark-mode {
    =============================================== */
 
 .auth-card {
-  background: var(--bg-light);
+  background: var(--ubuntu-cream);
   border-radius: 16px;
   box-shadow: var(--shadow-xl);
   padding: 48px 40px;
@@ -86,6 +105,7 @@ body.dark-mode {
   position: relative;
   z-index: 1;
   animation: slideUp 0.5s ease-out;
+  border: 2px solid var(--ubuntu-tan);
 }
 
 body.dark-mode .auth-card {
@@ -120,17 +140,18 @@ body.dark-mode .auth-card {
   margin-bottom: 40px;
 }
 
-.auth-icon {
+.auth-logo {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--warning-color) 100%);
-  border-radius: 16px;
   margin: 0 auto 20px;
+}
+
+.auth-logo-img {
+  max-width: 200px;
+  height: auto;
+  border-radius: 8px;
   box-shadow: var(--shadow-lg);
-  animation: iconPulse 2s ease-in-out infinite;
 }
 
 @keyframes iconPulse {
@@ -202,7 +223,7 @@ body.dark-mode .form-group label {
 
 .form-group input {
   padding: 12px 16px;
-  border: 2px solid var(--border-light);
+  border: 2px solid var(--ubuntu-tan);
   border-radius: 8px;
   font-size: 15px;
   transition: all 0.3s ease;
@@ -219,8 +240,8 @@ body.dark-mode .form-group input {
 
 .form-group input:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(67, 112, 55, 0.15);
+  border-color: var(--ubuntu-brown);
+  box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.15);
 }
 
 body.dark-mode .form-group input:focus {
@@ -231,6 +252,48 @@ body.dark-mode .form-group input:focus {
   background-color: #f1f5f9;
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* Password Input Wrapper */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  flex: 1;
+  padding-right: 45px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--ubuntu-brown);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle:hover {
+  color: var(--ubuntu-brown-dark);
+  background: rgba(139, 69, 19, 0.1);
+}
+
+.password-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.password-toggle svg {
+  width: 18px;
+  height: 18px;
 }
 
 body.dark-mode .form-group input:disabled {
@@ -249,7 +312,7 @@ body.dark-mode .form-group input:disabled {
 
 .auth-button {
   padding: 12px 24px;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--warning-color) 100%);
+  background: linear-gradient(135deg, var(--ubuntu-brown) 0%, var(--ubuntu-orange) 100%);
   color: white;
   border: none;
   border-radius: 8px;

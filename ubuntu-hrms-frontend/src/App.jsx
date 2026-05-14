@@ -11,10 +11,12 @@ import PublicJobBoard from './pages/recruitment/PublicJobBoard';
 import JobApplicationForm from './pages/recruitment/JobApplicationForm';
 import ApplicantReviewDashboard from './pages/recruitment/ApplicantReviewDashboard';
 import MyApplications from './pages/recruitment/MyApplications';
-import ProfileView from './pages/recruitment/ProfileView';
 import ProfileUpdateForm from './pages/recruitment/ProfileUpdateForm';
-import JobDetail from './pages/recruitment/JobDetail';
+import ProfileView from './pages/recruitment/ProfileView';
+import ProfileIndex from './pages/profile/index';
+import Settings from './pages/settings/index';
 import ApplicantDetail from './pages/recruitment/ApplicantDetail';
+import JobDetail from './pages/recruitment/JobDetail';
 
 // Auth Pages
 import Login from './pages/auth/Login';
@@ -51,6 +53,7 @@ import EmployeePayslips from './pages/payroll/Payslips';
 
 // KPI Pages
 import KpiManage from './pages/kpi/Manage';
+import KpiAssessment from './pages/kpi/Assesment';
 import MyGoals from './pages/kpi/MyGoals';
 
 // Contractor Pages
@@ -374,6 +377,14 @@ function App() {
               }
             />
             <Route
+              path="/kpi/assesment"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
+                  <KpiAssessment />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/kpi/my-goals"
               element={
                 <ProtectedRoute allowedRoles={['employee']}>
@@ -456,6 +467,42 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor', 'employee', 'contractor', 'hr']}>
                   <DashboardRedirect />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Profile Routes */}
+            <Route
+              path="/profile/view"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor', 'employee', 'contractor', 'hr']}>
+                  <ProfileView />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/update"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor', 'employee', 'contractor', 'hr']}>
+                  <ProfileUpdateForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor', 'employee', 'contractor', 'hr']}>
+                  <ProfileIndex />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Settings Route */}
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor', 'employee', 'contractor', 'hr']}>
+                  <Settings />
                 </ProtectedRoute>
               }
             />

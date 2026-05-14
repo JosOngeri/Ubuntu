@@ -169,7 +169,7 @@ const addEmployee = async (req, res) => {
       throw error;
     }
 
-    const loginLink = `${process.env.FRONTEND_URL || 'https://ubuntu-hrms12.vercel.app'}/login`;
+    const loginLink = `${process.env.FRONTEND_URL || 'http://localhost:5177'}/login`;
     const emailResult = await sendEmail({
       to: normalized.email,
       subject: 'Welcome to Ubuntu HRMS - Your Login Credentials',

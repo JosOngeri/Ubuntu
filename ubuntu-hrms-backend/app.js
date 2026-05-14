@@ -6,9 +6,9 @@ const app = express();
 
 
 const allowedOrigins = [
-  'https://ubuntu-hrms12.vercel.app',
+  'http://localhost:5177',
   'http://localhost:3000',
-  'https://ubuntu-hrms12.vercel.app',
+  'http://localhost:5177',
   process.env.FRONTEND_ORIGIN,
 ].filter(Boolean);
 
@@ -55,6 +55,16 @@ app.use(['/api/kpi', '/api/kpis'], require('./routes/kpi.routes'));
 app.use(['/api/leave', '/api/leaves'], require('./routes/leave.routes'));
 app.use('/api/contracts', require('./routes/contract.routes'));
 app.use('/api/contractors', require('./routes/contractor.routes'));
+
+// Reports and analytics
+app.use('/api/reports', require('./routes/report.routes'));
+
+// New modules — Daily Labour, Onboarding, Complaints, Contractor Lifecycle, Assets
+app.use('/api/daily-labourers', require('./routes/dailyLabourer.routes'));
+app.use('/api/onboarding', require('./routes/onboarding.routes'));
+app.use('/api/complaints', require('./routes/complaint.routes'));
+app.use('/api/contractor-lifecycle', require('./routes/contractorLifecycle.routes'));
+app.use('/api/assets', require('./routes/asset.routes'));
 
 // Settings and configuration
 app.use('/api/settings', require('./routes/settings.routes'));

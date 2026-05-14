@@ -4,13 +4,14 @@ import { useAuth } from '../../contexts/AuthContext'
 import { ToastContainer, toast } from 'react-toastify'
 import Button from '../../components/common/Button'
 import Input from '../../components/common/Input'
-import { BsPersonCircle } from 'react-icons/bs'
+import { BsPersonCircle, BsEye, BsEyeSlash } from 'react-icons/bs'
 import './Auth.css'
 
 const Login = () => {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
 
@@ -65,8 +66,8 @@ const Login = () => {
       
       <div className="auth-card">
         <div className="auth-header">
-          <div className="auth-icon">
-            <BsPersonCircle size={48} />
+          <div className="auth-logo">
+            <img src="/ubuntu-logo-with-tagline.png" alt="Ubuntu HRMS" className="auth-logo-img" />
           </div>
           <h1>UBUNTU HRMS</h1>
           <p>Human Resource Management System</p>
@@ -87,14 +88,24 @@ const Login = () => {
 
           <div className="form-group">
             <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-            />
+            <div className="password-input-wrapper">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={loading}
+              >
+                {showPassword ? <BsEyeSlash size={18} /> : <BsEye size={18} />}
+              </button>
+            </div>
           </div>
 
           <button

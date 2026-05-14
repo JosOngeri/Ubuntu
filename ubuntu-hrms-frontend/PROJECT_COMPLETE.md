@@ -298,7 +298,7 @@ npm start
 ### 3. Start Frontend
 ```bash
 pnpm dev
-# Opens at http://localhost:5173
+# Opens at http://localhost:5177
 ```
 
 ### Login

@@ -7,7 +7,7 @@ import api from '../../services/api';
 import { toast } from 'react-toastify';
 import { BsBriefcase, BsCalendar, BsChatDots, BsCheckCircle, BsClock, BsFileEarmarkText } from 'react-icons/bs';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://ubuntu-hrms-epmc.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const toCvUrl = (cvPath) => {
   if (!cvPath) return null;

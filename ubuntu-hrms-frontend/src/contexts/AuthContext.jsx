@@ -1,14 +1,36 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import axios from 'axios'
+import api from '../services/api'
 
 const AuthContext = createContext()
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://ubuntu-hrms-epmc.onrender.com'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
+const normalizeProfileName = (raw = {}) => {
+  const full = raw.fullName ?? raw.fullname
+  return typeof full === 'string' ? full.trim() : ''
+}
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [portalDisplayName, setPortalDisplayName] = useState('')
+
+  const refreshPortalProfile = useCallback(async () => {
+    const t = localStorage.getItem('authToken')
+    if (!t) {
+      setPortalDisplayName('')
+      return
+    }
+    try {
+      const res = await api.get('/profile/me')
+      const name = normalizeProfileName(res.data || {})
+      setPortalDisplayName(name)
+    } catch {
+      setPortalDisplayName('')
+    }
+  }, [])
 
   const decodeToken = (jwtToken) => {
     try {
@@ -33,13 +55,14 @@ export const AuthProvider = ({ children }) => {
         setToken(savedToken)
         setUser(decoded)
         axios.defaults.headers.common['x-auth-token'] = savedToken
+        refreshPortalProfile()
       } else {
         localStorage.removeItem('authToken')
         delete axios.defaults.headers.common['x-auth-token']
       }
     }
     setLoading(false)
-  }, [])
+  }, [refreshPortalProfile])
 
   const login = async (username, password) => {
     try {
@@ -68,6 +91,7 @@ export const AuthProvider = ({ children }) => {
       }
       setUser(decoded)
       console.log('[AuthContext] Decoded token after login:', decoded)
+      await refreshPortalProfile()
       
       return {
         mustChangePassword: false,
@@ -95,6 +119,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Invalid auth token received')
       }
       setUser(decoded)
+      await refreshPortalProfile()
       
       return decoded
     } catch (error) {
@@ -128,9 +153,15 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null)
     setToken(null)
+    setPortalDisplayName('')
     localStorage.removeItem('authToken')
     delete axios.defaults.headers.common['x-auth-token']
   }
+
+  const displayName = useMemo(
+    () => portalDisplayName || user?.name || user?.username || 'Guest',
+    [portalDisplayName, user]
+  )
 
   return (
     <AuthContext.Provider value={{ 
@@ -141,7 +172,10 @@ export const AuthProvider = ({ children }) => {
       register,
       forgotPassword,
       resetPassword,
-      logout 
+      logout,
+      portalDisplayName,
+      refreshPortalProfile,
+      displayName,
     }}>
       {children}
     </AuthContext.Provider>
