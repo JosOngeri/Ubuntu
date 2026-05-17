@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { BsPeople, BsClipboardCheck, BsCreditCard, BsGraphUp } from 'react-icons/bs'
+import { useNavigate } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import Card from '../../components/common/Card'
 import DashboardLayout from '../../components/DashboardLayout'
@@ -8,6 +9,7 @@ import api, { employeeAPI } from '../../services/api'
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 const AdminDashboard = () => {
+  const navigate = useNavigate()
   const [stats, setStats] = useState({
     totalEmployees: 0,
     presentToday: 0,
@@ -74,7 +76,7 @@ const AdminDashboard = () => {
       </div>
 
       <div className="grid-4">
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => navigate('/admin/employees')}>
           <div className="stat-card">
             <div className="stat-icon">
               <BsPeople size={28} />
@@ -85,7 +87,7 @@ const AdminDashboard = () => {
           </div>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => navigate('/admin/attendance')}>
           <div className="stat-card">
             <div className="stat-icon present">
               <BsClipboardCheck size={28} />
@@ -96,7 +98,7 @@ const AdminDashboard = () => {
           </div>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => navigate('/admin/payroll')}>
           <div className="stat-card">
             <div className="stat-icon pending">
               <BsCreditCard size={28} />
@@ -107,7 +109,7 @@ const AdminDashboard = () => {
           </div>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => navigate('/admin/kpi')}>
           <div className="stat-card">
             <div className="stat-icon success">
               <BsGraphUp size={28} />

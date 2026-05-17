@@ -17,6 +17,7 @@ const Button = ({
     danger: 'bg-red-600 text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800',
     success: 'bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800',
     ghost: 'bg-transparent text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
+    outline: 'bg-transparent border border-slate-300 text-slate-700 hover:border-slate-900 hover:text-slate-900 dark:border-slate-600 dark:text-slate-300 dark:hover:border-slate-100 dark:hover:text-slate-100 focus:border-slate-900 focus:text-slate-900 dark:focus:border-slate-100 dark:focus:text-slate-100',
   }
 
   const sizeClasses = {

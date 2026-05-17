@@ -9,6 +9,7 @@ const {
   toDateValue,
   validateAttendancePayload,
 } = require('../utils/validation');
+const { validateNoBackdatedAttendance } = require('../utils/settingsValidation');
 
 const findOrCreateAttendance = async (employeeId, punchTime, shift) => {
   const attendanceDate = toAttendanceDate(punchTime);
@@ -195,6 +196,19 @@ const managerPunchForEmployee = async (req, res) => {
       return res.status(404).json({ msg: 'Employee not found' });
     }
 
+    // Validate attendance date is not backdated
+    const validation = await validateNoBackdatedAttendance(timestamp, employee.id);
+    if (!validation.valid) {
+      // Allow override if user is admin/manager/owner with reason
+      const canOverride = ['admin', 'manager', 'owner'].includes(req.user?.role);
+      if (validation.canOverride && canOverride && req.body.overrideReason) {
+        // Log the override
+        console.log(`Attendance override by ${req.user.role}: ${req.body.overrideReason}`);
+      } else if (!validation.canOverride || !canOverride) {
+        return res.status(400).json({ msg: validation.error });
+      }
+    }
+
     const attendance = await findOrCreateAttendance(employee.id, timestamp, shift);
     applyPunchState(attendance, punchState, timestamp, 'manual-manager');
 
@@ -284,9 +298,28 @@ const adjustAttendance = async (req, res) => {
     const allowedFields = ['attendanceDate', 'status', 'shift', 'checkIn', 'breakOut', 'breakIn', 'checkOut', 'punchState'];
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
-        attendance[field] = field === 'attendanceDate' || field === 'checkIn' || field === 'breakOut' || field === 'breakIn' || field === 'checkOut'
-          ? toDateValue(req.body[field])
-          : req.body[field];
+        const isDateField = ['attendanceDate', 'checkIn', 'breakOut', 'breakIn', 'checkOut'].includes(field);
+        
+        if (isDateField) {
+          const dateValue = toDateValue(req.body[field]);
+          
+          // Validate attendance date is not backdated
+          const validation = await validateNoBackdatedAttendance(dateValue, attendance.employeeId);
+          if (!validation.valid) {
+            // Allow override if user is admin/manager/owner with reason
+            const canOverride = ['admin', 'manager', 'owner'].includes(req.user?.role);
+            if (validation.canOverride && canOverride && req.body.overrideReason) {
+              // Log the override
+              console.log(`Attendance override by ${req.user.role}: ${req.body.overrideReason}`);
+            } else if (!validation.canOverride || !canOverride) {
+              return res.status(400).json({ msg: validation.error });
+            }
+          }
+          
+          attendance[field] = dateValue;
+        } else {
+          attendance[field] = req.body[field];
+        }
       }
     }
 

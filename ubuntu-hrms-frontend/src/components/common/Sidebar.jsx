@@ -17,6 +17,7 @@ import {
   BsPersonCircle,
   BsClipboardCheck,
   BsBriefcase,
+  BsBox,
   BsFileEarmarkText,
   BsBullseye,       // ✅ replace BsTarget
   BsCloudUpload,
@@ -66,10 +67,10 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         ]
       },
       {
-        title: 'Time & Leave',
+        title: 'Time & Leave and Off-days',
         items: [
           { path: '/admin/attendance', label: 'Attendance', icon: BsClipboardCheck },
-          { path: '/admin/leaves', label: 'Leaves', icon: BsCalendarCheck },
+          { path: '/admin/leaves', label: 'Leave and Off-days', icon: BsCalendarCheck },
           { path: '/leave/statutory', label: 'Statutory Leave Review', icon: BsFileEarmarkText },
         ]
       },
@@ -94,6 +95,37 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         ]
       },
       {
+        title: 'Workforce',
+        items: [
+          { path: '/admin/onboarding', label: 'Onboarding', icon: BsPersonCheck },
+          { path: '/admin/daily-labour', label: 'Daily Labour', icon: BsPeople },
+        ]
+      },
+      {
+        title: 'Complaints',
+        items: [
+          { path: '/admin/complaints', label: 'Complaints', icon: BsHandThumbsUp },
+        ]
+      },
+      {
+        title: 'Assets',
+        items: [
+          { path: '/admin/assets', label: 'Assets', icon: BsBox },
+        ]
+      },
+      {
+        title: 'Contractors',
+        items: [
+          { path: '/admin/contractors', label: 'Contractors', icon: BsBriefcase },
+        ]
+      },
+      {
+        title: 'Reports',
+        items: [
+          { path: '/admin/reports', label: 'Reports', icon: BsGraphUp },
+        ]
+      },
+      {
         title: 'Hiring',
         items: recruitmentItems,
       },
@@ -111,11 +143,11 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         ]
       },
       {
-        title: 'Team Time & Leave',
+        title: 'Team Time & Leave and Off-days',
         items: [
           { path: '/manager/attendance', label: 'Attendance', icon: BsClipboardCheck },
-          { path: '/manager/leaves', label: 'Leave Overview', icon: BsCalendarCheck },
-          { path: '/leave/approvals', label: 'Leave Management', icon: BsCheckCircle },
+          { path: '/manager/leaves', label: 'Leave and Off-days Overview', icon: BsCalendarCheck },
+          { path: '/leave/approvals', label: 'Leave and Off-days Management', icon: BsCheckCircle },
           { path: '/leave/statutory', label: 'Statutory Leave Review', icon: BsFileEarmarkText },
         ]
       },
@@ -138,6 +170,37 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         items: recruitmentItems,
       },
       {
+        title: 'Workforce',
+        items: [
+          { path: '/admin/onboarding', label: 'Onboarding', icon: BsPersonCheck },
+          { path: '/admin/daily-labour', label: 'Daily Labour', icon: BsPeople },
+        ]
+      },
+      {
+        title: 'Complaints',
+        items: [
+          { path: '/admin/complaints', label: 'Complaints', icon: BsHandThumbsUp },
+        ]
+      },
+      {
+        title: 'Assets',
+        items: [
+          { path: '/admin/assets', label: 'Assets', icon: BsBox },
+        ]
+      },
+      {
+        title: 'Contractors',
+        items: [
+          { path: '/admin/contractors', label: 'Contractors', icon: BsBriefcase },
+        ]
+      },
+      {
+        title: 'Reports',
+        items: [
+          { path: '/admin/reports', label: 'Reports', icon: BsGraphUp },
+        ]
+      },
+      {
         title: 'Account',
         items: profileItems,
       }
@@ -151,12 +214,12 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         ]
       },
       {
-        title: 'Time & Leave',
+        title: 'Time & Leave and Off-days',
         items: [
           { path: '/employee/punch', label: 'Manual Punch', icon: BsPersonCheck },
           { path: '/employee/attendance', label: 'My Attendance', icon: BsClipboardCheck },
-          { path: '/employee/leaves', label: 'My Leaves', icon: BsCalendarCheck },
-          { path: '/leave/request', label: 'Request Leave', icon: BsCalendarX },
+          { path: '/employee/leaves', label: 'My Leave and Off-days', icon: BsCalendarCheck },
+          { path: '/leave/request', label: 'Request Leave and Off-days', icon: BsCalendarX },
         ]
       },
       {
@@ -169,6 +232,12 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         title: 'Finance',
         items: [
           { path: '/payroll/payslips', label: 'My Payslips', icon: BsFileText },
+        ]
+      },
+      {
+        title: 'Complaints',
+        items: [
+          { path: '/admin/complaints', label: 'Submit Complaint', icon: BsHandThumbsUp },
         ]
       },
       {
@@ -197,6 +266,12 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
           { path: '/contractor/projects', label: 'Projects', icon: BsBriefcase },
           { path: '/contractor/portal', label: 'Submit Milestones', icon: BsCloudUpload },
           { path: '/contractor/invoices', label: 'Invoices', icon: BsFileEarmarkText },
+        ]
+      },
+      {
+        title: 'Performance',
+        items: [
+          { path: '/contractor/reports', label: 'My KPI', icon: BsGraphUp },
         ]
       },
       {

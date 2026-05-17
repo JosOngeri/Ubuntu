@@ -211,7 +211,7 @@ const AdminUsers = () => {
               <option value="inactive">Inactive</option>
             </select>
           </div>
-          <Button type="button" variant="secondary" onClick={handleExportUsersReport}>Export Report</Button>
+          <Button type="button" variant="outline" onClick={handleExportUsersReport}>Export Report</Button>
         </div>
         <Table columns={columns} data={filteredUsers} loading={loading} />
       </Card>
@@ -231,7 +231,7 @@ const AdminUsers = () => {
           </div>
           <div className="flex gap-2 mt-4">
             <Button type="submit" variant="primary">Register</Button>
-            <Button type="button" variant="ghost" onClick={() => setShowRegisterModal(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => setShowRegisterModal(false)}>Cancel</Button>
           </div>
         </form>
       </Modal>
@@ -247,7 +247,7 @@ const AdminUsers = () => {
           </div>
           <div className="flex gap-2 mt-4">
             <Button type="submit" variant="primary">Approve</Button>
-            <Button type="button" variant="ghost" onClick={() => setShowApproveModal(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => setShowApproveModal(false)}>Cancel</Button>
           </div>
         </form>
       </Modal>
@@ -274,7 +274,7 @@ const AdminUsers = () => {
           </div>
           <div className="flex gap-2 mt-4 justify-end">
             <Button type="submit" variant="primary">Save Changes</Button>
-            <Button type="button" variant="ghost" onClick={() => setShowEditModal(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => setShowEditModal(false)}>Cancel</Button>
           </div>
         </form>
       </Modal>

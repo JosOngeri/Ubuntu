@@ -17,6 +17,13 @@ import ProfileIndex from './pages/profile/index';
 import Settings from './pages/settings/index';
 import ApplicantDetail from './pages/recruitment/ApplicantDetail';
 import JobDetail from './pages/recruitment/JobDetail';
+import CreateJobAdvertisement from './pages/recruitment/CreateJobAdvertisement';
+import OnboardingPage from './pages/onboarding/index';
+import DailyLabourPage from './pages/dailyLabour/index';
+import ComplaintsPage from './pages/complaints/index';
+import AssetsPage from './pages/assets/index';
+import ContractorsPage from './pages/contractors/index';
+import ReportsPage from './pages/reports/index';
 
 // Auth Pages
 import Login from './pages/auth/Login';
@@ -90,7 +97,7 @@ function ApplicantDetailWrapper() {
 function DashboardRedirect() {
   const { user, loading } = useAuth()
   if (loading) return <div className="loading-screen">Loading...</div>
-  if (!user) return <Navigate to="/login" replace />
+  if (!user) return <Navigate to="/" replace />
 
   if (user.role === 'admin' || user.role === 'hr') return <Navigate to="/admin/dashboard" replace />
   if (user.role === 'manager' || user.role === 'supervisor') return <Navigate to="/manager/dashboard" replace />
@@ -217,6 +224,55 @@ function App() {
               }
             />
 
+
+            <Route
+              path="/admin/onboarding"
+              element={
+                <ProtectedRoute allowedRoles={['admin','manager','hr']}>
+                  <OnboardingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/daily-labour"
+              element={
+                <ProtectedRoute allowedRoles={['admin','manager']}>
+                  <DailyLabourPage />
+                </ProtectedRoute>
+              }
+            />
+                    <Route
+              path="/admin/complaints"
+              element={
+                <ProtectedRoute allowedRoles={['admin','manager']}>
+                  <ComplaintsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/assets"
+              element={
+                <ProtectedRoute allowedRoles={['admin','manager']}>
+                  <AssetsPage />
+                </ProtectedRoute>
+              }
+            />
+                       <Route
+              path="/admin/contractors"
+              element={
+                <ProtectedRoute allowedRoles={['admin','manager']}>
+                  <ContractorsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/reports"
+              element={
+                <ProtectedRoute allowedRoles={['admin','manager']}>
+                  <ReportsPage />
+                </ProtectedRoute>
+              }
+            />
             {/* Manager Routes */}
             <Route
               path="/manager/dashboard"
@@ -419,6 +475,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/recruitment/create-advertisement"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'hr']}>
+                  <CreateJobAdvertisement />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/recruitment/jobs-board" element={<PublicJobBoard />} />
             <Route path="/recruitment/apply/:jobId" element={<JobApplicationFormWrapper />} />
             <Route
@@ -507,9 +571,9 @@ function App() {
               }
             />
 
-            {/* Root redirect */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            {/* Root redirect — public job board as landing page */}
+            <Route path="/" element={<PublicJobBoard />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
 
           <ToastContainer

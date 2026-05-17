@@ -66,7 +66,7 @@ const Permissions = () => {
           }}>
             View Details
           </Button>
-          <Button size="sm" variant="secondary" onClick={() => { setEditingUser(row); setNewRole(row.role); }}>Change Role</Button>
+          <Button size="sm" variant="outline" onClick={() => { setEditingUser(row); setNewRole(row.role); }}>Change Role</Button>
         </div>
       ),
     },
@@ -123,7 +123,7 @@ const Permissions = () => {
               <option value="admin">Admin</option>
             </select>
           </div>
-          <Button type="button" variant="secondary" onClick={handleExportRolesReport}>Export Report</Button>
+          <Button type="button" variant="outline" onClick={handleExportRolesReport}>Export Report</Button>
         </div>
         <Table columns={columns} data={filteredUsers} loading={loading} />
       </Card>
@@ -139,7 +139,7 @@ const Permissions = () => {
             </select>
             <div className="flex gap-2">
               <Button variant="primary" onClick={() => handleRoleChange(editingUser)}>Save</Button>
-              <Button variant="ghost" onClick={() => setEditingUser(null)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
             </div>
           </div>
         </div>

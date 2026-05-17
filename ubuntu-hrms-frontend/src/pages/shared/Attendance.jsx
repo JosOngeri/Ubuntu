@@ -386,13 +386,13 @@ const Attendance = ({ role = 'employee' }) => {
                   placeholder="BIO-001"
                 />
               ) : null}
-              <Button variant="secondary" onClick={() => handleSelfPunch('checkIn')}>
+              <Button variant="outline" onClick={() => handleSelfPunch('checkIn')}>
                 Check In
               </Button>
-              <Button variant="secondary" onClick={() => handleSelfPunch('breakOut')}>
+              <Button variant="outline" onClick={() => handleSelfPunch('breakOut')}>
                 Break Out
               </Button>
-              <Button variant="secondary" onClick={() => handleSelfPunch('breakIn')}>
+              <Button variant="outline" onClick={() => handleSelfPunch('breakIn')}>
                 Break In
               </Button>
               <Button variant="primary" onClick={() => handleSelfPunch('checkOut')}>
@@ -424,7 +424,7 @@ const Attendance = ({ role = 'employee' }) => {
               <option value="leave">Leave</option>
             </select>
           </div>
-          <Button type="button" variant="secondary" onClick={handleExportAttendanceReport}>Export Report</Button>
+          <Button type="button" variant="outline" onClick={handleExportAttendanceReport}>Export Report</Button>
         </div>
         <Table columns={columns} data={filteredAttendance} loading={loading} />
       </Card>
@@ -472,7 +472,7 @@ const Attendance = ({ role = 'employee' }) => {
               <Button type="submit" variant="primary">
                 Record Punch
               </Button>
-              <Button type="button" variant="ghost" onClick={() => setShowPunchModal(false)}>
+              <Button type="button" variant="outline" onClick={() => setShowPunchModal(false)}>
                 Cancel
               </Button>
             </div>
@@ -550,7 +550,7 @@ const Attendance = ({ role = 'employee' }) => {
               <Button type="submit" variant="primary">
                 Save Adjustment
               </Button>
-              <Button type="button" variant="ghost" onClick={() => setShowAdjustModal(false)}>
+              <Button type="button" variant="outline" onClick={() => setShowAdjustModal(false)}>
                 Cancel
               </Button>
             </div>

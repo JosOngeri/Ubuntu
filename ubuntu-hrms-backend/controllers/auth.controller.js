@@ -37,8 +37,19 @@ const register = async (req, res) => {
     user.password = await bcrypt.hash(password, salt);
     await user.save();
 
+    // Send welcome email if email is provided
+    let emailResult = { sent: false };
+    if (email) {
+      emailResult = await sendEmail({
+        to: email,
+        subject: 'Welcome to Ubuntu HRMS',
+        text: `Hello ${username},\n\nWelcome to Ubuntu HRMS! Your account has been successfully created.\n\nUsername: ${username}\nRole: ${role}\n\nPlease log in to get started.`,
+        html: `<p>Hello ${username},</p><p>Welcome to Ubuntu HRMS! Your account has been successfully created.</p><p><strong>Username:</strong> ${username}</p><p><strong>Role:</strong> ${role}</p><p>Please log in to get started.</p>`,
+      });
+    }
+
     const token = await signAuthToken(user);
-    res.json({ token });
+    res.json({ token, emailNotification: emailResult.sent ? 'sent' : 'not-sent' });
   } catch (err) {
     if (err?.code === '23505') {
       return res.status(400).json({ msg: 'User already exists' });

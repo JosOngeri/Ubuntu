@@ -1,21 +1,21 @@
-# UBUNTU HRMS - Project Complete
+# UBUNTU HRMS — Hotel Workforce Management System
 
-## Status: ✅ FULLY COMPLETED
+## Status: ✅ PHASE 1 COMPLETE | ✅ PHASE 2 COMPLETE
 
-A production-ready, modern HRMS frontend application has been successfully built according to your specifications.
+A full-stack HRMS tailored for Ubuntu Ecolodge, managing employees, daily labourers, contractors, onboarding, and complaints.
 
 ---
 
-## What Was Delivered
+## What Was Delivered (Phase 1 — Foundation)
 
 ### Complete React.js Application
-- **Pure JavaScript** - No Next.js, pure React with Vite
-- **Modern UI** - Clean, professional, responsive design
-- **Light & Dark Theme** - Persistent theme preference
-- **No Emojis** - Proper react-icons used throughout
-- **Role-Based Portals** - Admin, Manager, Employee with distinct UIs
+- **Pure JavaScript** — No Next.js, pure React with Vite
+- **Modern UI** — Clean, professional, responsive design with Tailwind CSS
+- **Light & Dark Theme** — Persistent theme preference
+- **No Emojis** — Proper react-icons used throughout
+- **Role-Based Portals** — Admin, Manager, Employee, Contractor with distinct UIs
 
-### Three Complete Portals
+### Five Complete Portals
 
 #### 1. Admin Portal
 Full system access with pages for:
@@ -26,6 +26,9 @@ Full system access with pages for:
 - Payroll (calculate & disburse)
 - KPIs (performance tracking)
 - Contracts (management)
+- **Onboarding** (8-step workflow: offer letter → confirmation)
+- **Daily Labour** (registration, attendance, wages, conversion)
+- **Complaints** (guest + employee, SLA tracking)
 - Reports & Settings
 
 #### 2. Manager/Supervisor Portal
@@ -36,6 +39,9 @@ Team management with pages for:
 - Leaves (approval interface)
 - Payroll (view only)
 - KPIs (team tracking)
+- **Onboarding** (manage team onboarding)
+- **Daily Labour** (manage casual workers)
+- **Complaints** (handle grievances)
 - Reports
 
 #### 3. Employee Portal
@@ -46,6 +52,20 @@ Self-service access with pages for:
 - My Leaves (request management)
 - My Contracts (view)
 - My Profile (info)
+- **Submit Complaint** (file grievances)
+
+#### 4. Public Job Board (No Login Required)
+- Browse open positions at Ubuntu Ecolodge
+- Search and filter by department & employment type
+- Apply directly to jobs
+- Beautiful landing-page style design
+
+#### 5. Contractor Portal
+- Dashboard
+- Projects & Milestones
+- Submit deliverables
+- Invoices
+- **My KPI** (performance tracking)
 
 ---
 
@@ -184,15 +204,21 @@ State Management:
 
 ## Data Integration
 
-### 30+ API Endpoints Ready
+### 50+ API Endpoints Ready
 ```
-Authentication:     2 endpoints
-Employees:          4 endpoints
-Attendance:         5 endpoints
-Payroll:            3 endpoints
-KPIs:               4 endpoints
-Leaves:             4 endpoints
-Contracts:          4 endpoints
+Authentication:          2 endpoints
+Employees:               4 endpoints
+Attendance:              5 endpoints
+Payroll:                 3 endpoints
+KPIs:                    4 endpoints
+Leaves:                  4 endpoints
+Contracts:               4 endpoints
+Reports:                 8 endpoints
+Daily Labourers:         8 endpoints
+Onboarding:              7 endpoints
+Complaints:              6 endpoints
+Contractor Lifecycle:   10 endpoints
+Assets:                  4 endpoints
 ```
 
 ### API Features
@@ -244,39 +270,66 @@ Contracts:          4 endpoints
 
 ```
 ubuntu-hrms/
-├── src/
-│   ├── components/
-│   │   ├── common/           (8 reusable components)
-│   │   ├── ProtectedRoute.jsx
-│   │   └── DashboardLayout.jsx
-│   ├── contexts/
-│   │   ├── AuthContext.jsx
-│   │   └── ThemeContext.jsx
-│   ├── pages/
-│   │   ├── auth/             (Login page)
-│   │   ├── admin/            (Admin portal)
-│   │   ├── manager/          (Manager portal)
-│   │   ├── employee/         (Employee portal)
-│   │   ├── shared/           (Attendance, Leaves, Payroll)
-│   │   └── Error pages
-│   ├── services/
-│   │   └── api.js            (30+ endpoints)
-│   ├── App.jsx               (Main router)
-│   ├── main.jsx              (Entry point)
-│   └── index.css             (Global styles)
-├── vite.config.js
-├── package.json
-├── .env.example
-├── .gitignore
-├── index.html
-└── Documentation files
-    ├── README.md
-    ├── SETUP.md
-    ├── QUICK_START.md
-    ├── FEATURES.md
-    ├── ARCHITECTURE.md
-    ├── IMPLEMENTATION_SUMMARY.md
-    └── PROJECT_COMPLETE.md (this file)
+├── ubuntu-hrms-backend/
+│   ├── models/
+│   │   ├── DailyLabourer.model.js      (NEW)
+│   │   ├── DailyAttendance.model.js    (NEW)
+│   │   ├── Onboarding.model.js         (NEW)
+│   │   ├── Complaint.model.js          (NEW)
+│   │   ├── Milestone.model.js          (NEW)
+│   │   ├── ContractorQuote.model.js    (NEW)
+│   │   └── Asset.model.js              (NEW)
+│   ├── controllers/
+│   │   ├── dailyLabourer.controller.js (NEW)
+│   │   ├── onboarding.controller.js    (NEW)
+│   │   ├── complaint.controller.js     (NEW)
+│   │   ├── contractorLifecycle.controller.js (NEW)
+│   │   └── asset.controller.js         (NEW)
+│   ├── routes/
+│   │   ├── dailyLabourer.routes.js     (NEW)
+│   │   ├── onboarding.routes.js        (NEW)
+│   │   ├── complaint.routes.js         (NEW)
+│   │   ├── contractorLifecycle.routes.js (NEW)
+│   │   └── asset.routes.js             (NEW)
+│   └── app.js                          (updated)
+│
+├── ubuntu-hrms-frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── common/           (8 reusable components)
+│   │   │   ├── ProtectedRoute.jsx
+│   │   │   └── DashboardLayout.jsx
+│   │   ├── contexts/
+│   │   │   ├── AuthContext.jsx
+│   │   │   └── ThemeContext.jsx
+│   │   ├── pages/
+│   │   │   ├── auth/             (Login page)
+│   │   │   ├── admin/            (Admin portal)
+│   │   │   ├── manager/          (Manager portal)
+│   │   │   ├── employee/         (Employee portal)
+│   │   │   ├── recruitment/      (Jobs + Public Board)
+│   │   │   ├── onboarding/       (NEW — Onboarding workflow)
+│   │   │   ├── dailyLabour/      (NEW — Casual labour mgmt)
+│   │   │   ├── complaints/       (NEW — Guest + employee complaints)
+│   │   │   └── shared/           (Attendance, Leaves, Payroll)
+│   │   ├── services/
+│   │   │   └── api.js            (50+ endpoints)
+│   │   ├── App.jsx               (Main router — updated)
+│   │   ├── main.jsx              (Entry point)
+│   │   └── index.css             (Global styles)
+│   ├── vite.config.js
+│   ├── package.json
+│   ├── .env.example
+│   ├── .gitignore
+│   ├── index.html
+│   └── Documentation files
+│       ├── README.md
+│       ├── SETUP.md
+│       ├── QUICK_START.md
+│       ├── FEATURES.md
+│       ├── ARCHITECTURE.md
+│       ├── IMPLEMENTATION_SUMMARY.md
+│       └── PROJECT_COMPLETE.md (this file)
 ```
 
 ---
@@ -464,38 +517,40 @@ This application is **ready for production deployment** with:
 
 ## Summary
 
-**Status:** ✅ Complete
-**Functionality:** ✅ Fully Implemented
+**Status:** ✅ Phase 1 Complete | ✅ Phase 2 Complete
+**Backend:** ✅ 7 new models, 5 new controllers, 5 new route files, KPI auto-calculation
+**Frontend:** ✅ 7 new pages, updated routing & navigation for all roles
 **Testing:** ✅ Ready to Test
 **Documentation:** ✅ Comprehensive
 **Quality:** ✅ Production Ready
-**Deployment:** ✅ Ready to Deploy
 
 ---
 
-## The Application is Ready to Use!
+## What's Implemented (Phase 1)
 
-You have a complete, modern, production-ready HRMS frontend application with:
-
-- **3 Role-Based Portals** (Admin, Manager, Employee)
+- **5 Role-Based Portals** (Admin, Manager, Employee, Contractor, Public)
+- **Public Job Board** — browse & apply without login
+- **Full Onboarding** — 8-step workflow from offer letter to confirmation
+- **Daily Labour Management** — register, attendance, wages, conversion
+- **Complaints System** — guest + employee grievances with SLA tracking
+- **Contractor Lifecycle** — backend ready (quotes, milestones, KPI, payments)
+- **Asset Tracking** — backend ready (register, assign, return)
+- **Dynamic Reports** — 8 report types with filtering
 - **Light & Dark Theme** with persistent preference
 - **Responsive Design** (mobile, tablet, desktop)
-- **Professional UI** with no emojis, using proper icons
-- **Complete API Integration** ready for your backend
-- **Comprehensive Documentation** for setup and usage
-- **Clean, Maintainable Code** following best practices
-
-Simply install dependencies, configure your backend API URL, and start using the system!
-
-```bash
-pnpm install
-pnpm dev
-# Login with: admin / password123
-```
 
 ---
 
-**🎉 Congratulations! Your UBUNTU HRMS frontend is complete!**
+## Phase 2 — Complete ✅
+
+- **Contractor Lifecycle** — quote approval/rejection, milestone tracking with progress bars, KPI verification (3-score), payment release
+- **Asset Management** — register assets by type/condition, assign to employees, track returns
+- **Enhanced Reports** — 8 report types with date range & department filters, bar chart visualizations, CSV export
+- **KPI Auto-Calculation** — contractor overall KPI computed automatically when all milestones verified
+
+---
+
+**🎉 Both phases complete! Full hotel workforce management system ready.**
 
 ---
 
@@ -531,7 +586,7 @@ pnpm dev
 ### Service Files (1)
 - ✅ src/services/api.js
 
-### Page Files (12)
+### Page Files (16)
 - ✅ src/pages/auth/Login.jsx
 - ✅ src/pages/admin/Dashboard.jsx
 - ✅ src/pages/admin/Employees.jsx
@@ -540,6 +595,13 @@ pnpm dev
 - ✅ src/pages/shared/Attendance.jsx
 - ✅ src/pages/shared/Leaves.jsx
 - ✅ src/pages/shared/Payroll.jsx
+- ✅ src/pages/recruitment/PublicJobBoard.jsx (NEW)
+- ✅ src/pages/onboarding/index.jsx (NEW)
+- ✅ src/pages/dailyLabour/index.jsx (NEW)
+- ✅ src/pages/complaints/index.jsx (NEW)
+- ✅ src/pages/assets/index.jsx (NEW — Phase 2)
+- ✅ src/pages/contractors/index.jsx (NEW — Phase 2)
+- ✅ src/pages/reports/index.jsx (NEW — Phase 2)
 - ✅ src/pages/Unauthorized.jsx
 - ✅ + All CSS files
 
@@ -558,5 +620,5 @@ pnpm dev
 
 ---
 
-*Last Updated: 2026-03-30*
-*UBUNTU HRMS Frontend v1.0 - Complete*
+*Last Updated: 2026-05-14*
+*UBUNTU HRMS v2.0 — All Phases Complete*

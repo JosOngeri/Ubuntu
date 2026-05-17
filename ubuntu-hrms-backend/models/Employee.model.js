@@ -1,6 +1,8 @@
 const { query } = require('../config/db');
 const { normalizeId, toOptionalText, toDate } = require('../utils/postgres');
 
+const toJsonb = (value, fallback = null) => JSON.stringify(value ?? fallback);
+
 const mapRow = (row) => {
   if (!row) {
     return null;
@@ -22,6 +24,17 @@ const mapRow = (row) => {
     dateJoined: row.date_joined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    dateOfBirth: row.date_of_birth,
+    gender: row.gender,
+    maritalStatus: row.marital_status,
+    nationality: row.nationality,
+    nationalId: row.national_id,
+    residentialAddress: row.residential_address,
+    emergencyContact: row.emergency_contact,
+    educationHistory: row.education_history,
+    employmentHistory: row.employment_history,
+    skills: row.skills,
+    certifications: row.certifications,
   });
 };
 
@@ -42,6 +55,17 @@ class Employee {
     this.dateJoined = data.dateJoined ?? data.date_joined ?? null;
     this.createdAt = data.createdAt ?? data.created_at ?? null;
     this.updatedAt = data.updatedAt ?? data.updated_at ?? null;
+    this.dateOfBirth = data.dateOfBirth ?? null;
+    this.gender = data.gender ?? null;
+    this.maritalStatus = data.maritalStatus ?? null;
+    this.nationality = data.nationality ?? null;
+    this.nationalId = data.nationalId ?? null;
+    this.residentialAddress = data.residentialAddress ?? null;
+    this.emergencyContact = data.emergencyContact ?? null;
+    this.educationHistory = data.educationHistory ?? null;
+    this.employmentHistory = data.employmentHistory ?? null;
+    this.skills = data.skills ?? null;
+    this.certifications = data.certifications ?? null;
   }
 
   static fromRow(row) {
@@ -127,6 +151,7 @@ class Employee {
     const normalizedDepartment = toOptionalText(this.department);
     const normalizedWageRate = this.wageRate === null || this.wageRate === undefined ? null : Number(this.wageRate);
     const normalizedDateJoined = this.dateJoined ? toDate(this.dateJoined) : now;
+    const normalizedDateOfBirth = this.dateOfBirth ? toDate(this.dateOfBirth) : null;
 
     if (this.id) {
       const { rows } = await query(
@@ -142,8 +167,19 @@ class Employee {
               wage_rate = $8,
               department = $9,
               date_joined = COALESCE($10, date_joined),
-              updated_at = $11
-          WHERE id = $12
+              updated_at = $11,
+              date_of_birth = $12,
+              gender = $13,
+              marital_status = $14,
+              nationality = $15,
+              national_id = $16,
+              residential_address = $17,
+              emergency_contact = $18,
+              education_history = $19,
+              employment_history = $20,
+              skills = $21,
+              certifications = $22
+          WHERE id = $23
           RETURNING *
         `,
         [
@@ -158,6 +194,17 @@ class Employee {
           normalizedDepartment,
           normalizedDateJoined,
           now,
+          normalizedDateOfBirth,
+          this.gender,
+          this.maritalStatus,
+          this.nationality,
+          this.nationalId,
+          toJsonb(this.residentialAddress),
+          toJsonb(this.emergencyContact),
+          toJsonb(this.educationHistory),
+          toJsonb(this.employmentHistory),
+          toJsonb(this.skills),
+          toJsonb(this.certifications),
           this.id,
         ]
       );
@@ -170,9 +217,12 @@ class Employee {
       `
         INSERT INTO employees (
           user_id, status, first_name, last_name, email, phone, biometric_device_id, mpesa_phone_number,
-          employment_type, wage_rate, department, date_joined, created_at, updated_at
+          employment_type, wage_rate, department, date_joined, created_at, updated_at,
+          date_of_birth, gender, marital_status, nationality, national_id,
+          residential_address, emergency_contact, education_history, employment_history, skills, certifications
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13,
+          $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
         RETURNING *
       `,
       [
@@ -189,6 +239,17 @@ class Employee {
         normalizedDepartment,
         normalizedDateJoined,
         now,
+        normalizedDateOfBirth,
+        this.gender,
+        this.maritalStatus,
+        this.nationality,
+        this.nationalId,
+        toJsonb(this.residentialAddress),
+        toJsonb(this.emergencyContact),
+        toJsonb(this.educationHistory),
+        toJsonb(this.employmentHistory),
+        toJsonb(this.skills),
+        toJsonb(this.certifications),
       ]
     );
 
@@ -219,6 +280,17 @@ class Employee {
       dateJoined: this.dateJoined,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
+      dateOfBirth: this.dateOfBirth,
+      gender: this.gender,
+      maritalStatus: this.maritalStatus,
+      nationality: this.nationality,
+      nationalId: this.nationalId,
+      residentialAddress: this.residentialAddress,
+      emergencyContact: this.emergencyContact,
+      educationHistory: this.educationHistory,
+      employmentHistory: this.employmentHistory,
+      skills: this.skills,
+      certifications: this.certifications,
     };
   }
 }

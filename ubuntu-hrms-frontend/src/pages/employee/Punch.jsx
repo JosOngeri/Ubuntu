@@ -6,18 +6,13 @@ import Button from '../../components/common/Button'
 import { attendanceAPI, employeeAPI } from '../../services/api'
 import { toast } from 'react-toastify'
 import { BsGeoAlt, BsClock, BsCheckCircle, BsArrowLeft, BsClipboardCheck } from 'react-icons/bs'
-
-const PUNCH_ACTIONS = [
-  { value: 'checkIn', label: 'Check In', tone: 'primary' },
-  { value: 'breakOut', label: 'Break Out', tone: 'secondary' },
-  { value: 'breakIn', label: 'Break In', tone: 'secondary' },
-  { value: 'checkOut', label: 'Check Out', tone: 'success' },
-]
+import { useSettings } from '../../contexts/SettingsContext'
 
 const getStoredDeviceId = () => localStorage.getItem('biometricDeviceId') || 'BIO-001'
 
 export default function Punch() {
   const navigate = useNavigate()
+  const { getPunchActions } = useSettings()
   const [biometricDeviceId, setBiometricDeviceId] = useState(getStoredDeviceId())
   const [employeeProfile, setEmployeeProfile] = useState(null)
   const [punchState, setPunchState] = useState('checkIn')
@@ -25,6 +20,8 @@ export default function Punch() {
   const [locating, setLocating] = useState(false)
   const [location, setLocation] = useState(null)
   const [lastResult, setLastResult] = useState(null)
+
+  const PUNCH_ACTIONS = getPunchActions()
 
   useEffect(() => {
     localStorage.setItem('biometricDeviceId', biometricDeviceId)
@@ -183,7 +180,7 @@ export default function Punch() {
             </div>
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button type="button" variant="secondary" onClick={handleGetLocation} loading={locating}>
+              <Button type="button" variant="outline" onClick={handleGetLocation} loading={locating}>
                 Capture Current Location
               </Button>
               <Button type="button" variant="primary" onClick={() => submitPunch()} loading={loading}>

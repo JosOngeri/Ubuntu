@@ -18,7 +18,19 @@ const APPLICATION_SELECT_COLUMNS = `
   appliedat AS "appliedAt",
   coverletter AS "coverLetter",
   applicationdata AS "applicationData",
-  recruiterannouncement AS "recruiterAnnouncement"
+  recruiterannouncement AS "recruiterAnnouncement",
+  auto_score AS "autoScore",
+  manual_score AS "manualScore",
+  score_breakdown AS "scoreBreakdown",
+  reviewer_notes AS "reviewerNotes",
+  personal_info AS "personalInfo",
+  address_info AS "addressInfo",
+  position_details AS "positionDetails",
+  education AS "education",
+  employment_history AS "employmentHistory",
+  references AS "references",
+  skills AS "skills",
+  declaration AS "declaration"
 `;
 
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
@@ -45,6 +57,10 @@ const ensureColumns = async () => {
   await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS coverletter TEXT`);
   await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS applicationdata JSONB`);
   await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS recruiterannouncement TEXT`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS auto_score DECIMAL`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS manual_score DECIMAL`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS score_breakdown JSONB`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS reviewer_notes TEXT`);
 };
 
 const JobApplication = {

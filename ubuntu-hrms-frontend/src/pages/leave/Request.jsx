@@ -3,14 +3,7 @@ import { toast } from 'react-toastify'
 import DashboardLayout from '../../components/DashboardLayout'
 import { employeeAPI, leaveAPI } from '../../services/api'
 import { useAuth } from '../../contexts/AuthContext'
-
-const leaveTypeOptions = [
-  { value: 'annual', label: 'Annual' },
-  { value: 'sick', label: 'Sick' },
-  { value: 'maternity', label: 'Maternity' },
-  { value: 'paternity', label: 'Paternity' },
-  { value: 'unpaid', label: 'Unpaid' },
-]
+import { useSettings } from '../../contexts/SettingsContext'
 
 const dayCount = (startDate, endDate) => {
   if (!startDate || !endDate) return 0
@@ -24,6 +17,7 @@ const formatCurrencyDays = (value) => `${Number(value || 0)} day(s)`
 
 export default function LeaveRequest() {
   const { user } = useAuth()
+  const { getLeaveTypes } = useSettings()
   const [employee, setEmployee] = useState(null)
   const [balance, setBalance] = useState({ annual: 0, sick: 0, maternity_paternity: 0 })
   const [loading, setLoading] = useState(true)
@@ -31,6 +25,14 @@ export default function LeaveRequest() {
   const [error, setError] = useState('')
   const [attachment, setAttachment] = useState(null)
   const [form, setForm] = useState({ type: 'annual', startDate: '', endDate: '', reason: '' })
+
+  const leaveTypes = getLeaveTypes()
+  const leaveTypeOptions = useMemo(() => {
+    return leaveTypes.map(type => ({
+      value: type,
+      label: type.charAt(0).toUpperCase() + type.slice(1)
+    }))
+  }, [leaveTypes])
 
   useEffect(() => {
     let isMounted = true
@@ -157,9 +159,9 @@ export default function LeaveRequest() {
   return (
     <DashboardLayout>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-950 dark:text-white">Leave Request</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-950 dark:text-white">Leave and Off-days Request</h1>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-          Submit annual, sick, or statutory leave requests with balance checks and supporting documents.
+          Submit annual, sick, statutory, or off-day requests with balance checks and supporting documents.
         </p>
       </div>
 

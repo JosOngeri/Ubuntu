@@ -9,6 +9,7 @@ import Input from '../../components/common/Input'
 import Modal from '../../components/common/Modal'
 import { employeeAPI } from '../../services/api'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSettings } from '../../contexts/SettingsContext'
 import { toast } from 'react-toastify'
 import { downloadPdfReport } from '../../utils/reportExport'
 // import './Employees.css'
@@ -16,6 +17,7 @@ import { downloadPdfReport } from '../../utils/reportExport'
 const Employees = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { getDepartments, getEmploymentTypes, refreshSettings } = useSettings()
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -23,12 +25,13 @@ const Employees = () => {
   const [employmentTypeFilter, setEmploymentTypeFilter] = useState('all')
   const [showModal, setShowModal] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState(null)
+  const [departments, setDepartments] = useState([])
+  const [employmentTypes, setEmploymentTypes] = useState([])
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
-    biometricDeviceId: '',
     mpesaPhoneNumber: '',
     employmentType: 'Permanent',
     wageRate: '',
@@ -40,6 +43,8 @@ const Employees = () => {
 
   useEffect(() => {
     fetchEmployees()
+    setDepartments(getDepartments() || [])
+    setEmploymentTypes(getEmploymentTypes() || [])
   }, [])
 
   const fetchEmployees = async () => {
@@ -60,7 +65,6 @@ const Employees = () => {
       lastName: '',
       email: '',
       phone: '',
-      biometricDeviceId: '',
       mpesaPhoneNumber: '',
       employmentType: 'Permanent',
       wageRate: '',
@@ -69,8 +73,11 @@ const Employees = () => {
     setEditingEmployee(null)
   }
 
-  const openAddModal = () => {
+  const openAddModal = async () => {
+    await refreshSettings()
     resetForm()
+    setDepartments(getDepartments() || [])
+    setEmploymentTypes(getEmploymentTypes() || [])
     setShowModal(true)
   }
 
@@ -81,7 +88,6 @@ const Employees = () => {
       lastName: employee.lastName || '',
       email: employee.email || '',
       phone: employee.phone || '',
-      biometricDeviceId: employee.biometricDeviceId || '',
       mpesaPhoneNumber: employee.mpesaPhoneNumber || '',
       employmentType: employee.employmentType || 'Permanent',
       wageRate: employee.wageRate ?? '',
@@ -111,8 +117,17 @@ const Employees = () => {
       resetForm()
       fetchEmployees()
     } catch (error) {
-      const errMsg = error?.response?.data?.msg || (editingEmployee ? 'Failed to update employee' : 'Failed to add employee')
-      toast.error(errMsg)
+      const errors = error?.response?.data?.errors || []
+      const msg = error?.response?.data?.msg || (editingEmployee ? 'Failed to update employee' : 'Failed to add employee')
+
+      if (errors.length > 0) {
+        // Display each validation error in a user-friendly way
+        errors.forEach(err => {
+          toast.error(err)
+        })
+      } else {
+        toast.error(msg)
+      }
     }
   }
 
@@ -299,13 +314,6 @@ const Employees = () => {
 
           <div className="form-row">
             <Input
-              label="Biometric Device ID"
-              placeholder="BIO-001"
-              value={formData.biometricDeviceId}
-              onChange={(e) => setFormData({ ...formData, biometricDeviceId: e.target.value })}
-              required
-            />
-            <Input
               label="M-Pesa Number"
               placeholder="254700000000"
               value={formData.mpesaPhoneNumber}
@@ -315,15 +323,18 @@ const Employees = () => {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Employment Type</label>
+              <label className="block mb-1 text-sm font-medium text-slate-700 dark:text-slate-300">Employment Type</label>
               <select
                 value={formData.employmentType}
                 onChange={(e) => setFormData({ ...formData, employmentType: e.target.value })}
                 className="form-select"
               >
-                <option>Permanent</option>
-                <option>Contractor</option>
-                <option>Daily</option>
+                <option value="">Select type...</option>
+                {employmentTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
               </select>
             </div>
             <Input
@@ -336,21 +347,30 @@ const Employees = () => {
             />
           </div>
 
-          <Input
-            label="Department"
-            placeholder="Kitchen"
-            value={formData.department}
-            onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-            required
-          />
+          <div className="form-group">
+            <label className="block mb-1 text-sm font-medium text-slate-700 dark:text-slate-300">Department</label>
+            <select
+              value={formData.department}
+              onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+              className="form-select"
+              required
+            >
+              <option value="">Select department...</option>
+              {departments.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <div className="form-actions">
+          <div className="form-actions flex gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
             <Button type="submit" variant="primary">
               {editingEmployee ? 'Save Changes' : 'Add Employee'}
             </Button>
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               onClick={() => {
                 setShowModal(false)
                 resetForm()

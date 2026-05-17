@@ -69,6 +69,9 @@ app.use('/api/assets', require('./routes/asset.routes'));
 // Settings and configuration
 app.use('/api/settings', require('./routes/settings.routes'));
 
+// Job advertisements
+app.use('/api/advertisements', require('./routes/advertisement.routes'));
+
 app.use((req, res) => {
   res.status(404).json({ msg: 'Route not found' });
 });

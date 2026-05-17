@@ -17,6 +17,7 @@ router.put('/milestones/:id/verify', ctrl.verifyMilestone);
 router.put('/milestones/:id/payment', ctrl.releasePayment);
 router.post('/milestones/:id/daily-wage', ctrl.addDailyWageDay);
 
-router.get('/kpi/:contractorId?', ctrl.getContractorKPI);
+router.get('/kpi', ctrl.getContractorKPI);
+router.get('/kpi/:contractorId', ctrl.getContractorKPI);
 
 module.exports = router;

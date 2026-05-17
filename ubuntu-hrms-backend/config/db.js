@@ -86,28 +86,86 @@ const initDatabase = async () => {
   // Attendance permission for permanent workers
   await query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS can_self_record_attendance BOOLEAN NOT NULL DEFAULT true`);
 
+  // Multi-step form data columns for employee profile
+  await query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS date_of_birth DATE`);
+  await query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS gender VARCHAR(20)`);
+  await query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS marital_status VARCHAR(20)`);
+  await query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS nationality VARCHAR(50)`);
+  await query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS national_id VARCHAR(50)`);
+  await query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS residential_address JSONB`);
+  await query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS emergency_contact JSONB`);
+  await query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS education_history JSONB`);
+  await query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS employment_history JSONB`);
+  await query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS skills JSONB`);
+  await query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS certifications JSONB`);
+
   // Settings table for work area location and configuration
   await query(`
     CREATE TABLE IF NOT EXISTS settings (
       id BIGSERIAL PRIMARY KEY,
-      setting_key TEXT NOT NULL UNIQUE,
+      setting_key TEXT NOT NULL,
+      category TEXT,
       setting_value TEXT NOT NULL,
       description TEXT,
-      updated_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+      data_type TEXT NOT NULL DEFAULT 'string',
+      is_active BOOLEAN NOT NULL DEFAULT true,
+      validation_rules JSONB,
+      updated_by BIGINT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(setting_key, category)
     )
   `);
 
+  // Add missing columns for flexible settings system
+  await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS category TEXT`);
+  await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS description TEXT`);
+  await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS data_type TEXT NOT NULL DEFAULT 'string'`);
+  await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true`);
+  await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS validation_rules JSONB`);
+  await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS updated_by BIGINT`);
+
+  // Drop old unique constraint on just setting_key and add new composite constraint
+  await query(`ALTER TABLE settings DROP CONSTRAINT IF EXISTS settings_setting_key_key`);
+  await query(`ALTER TABLE settings DROP CONSTRAINT IF EXISTS settings_setting_key_category_key`);
+  await query(`ALTER TABLE settings ADD CONSTRAINT settings_setting_key_category_key UNIQUE(setting_key, category)`);
+
+  // Update existing rows to have category = 'general' if null
+  await query(`UPDATE settings SET category = 'general' WHERE category IS NULL`);
+
   // Insert default settings if they don't exist
   await query(`
-    INSERT INTO settings (setting_key, setting_value, description)
-    VALUES 
-      ('OFFICE_LATITUDE', '-1.19293', 'Office location latitude'),
-      ('OFFICE_LONGITUDE', '36.93057', 'Office location longitude'),
-      ('OFFICE_RADIUS_METERS', '1000', 'Allowed work location radius in meters'),
-      ('OFFICE_NAME', 'Main Office', 'Name of the office location')
-    ON CONFLICT (setting_key) DO NOTHING
+    INSERT INTO settings (setting_key, category, setting_value, description, data_type)
+    VALUES
+      ('OFFICE_LATITUDE', 'location', '-1.19293', 'Office location latitude', 'number'),
+      ('OFFICE_LONGITUDE', 'location', '36.93057', 'Office location longitude', 'number'),
+      ('OFFICE_RADIUS_METERS', 'location', '1000', 'Allowed work location radius in meters', 'number'),
+      ('OFFICE_NAME', 'location', 'Main Office', 'Name of the office location', 'string'),
+      ('DEPARTMENTS', 'general', '["HR", "IT", "Finance", "Operations", "Sales", "Marketing", "Kitchen", "Security", "Housekeeping", "Grounds", "Administration"]', 'Available departments', 'array'),
+      ('EMPLOYMENT_TYPES', 'general', '["Permanent", "Contractor", "Daily"]', 'Available employment types', 'array'),
+      ('LEAVE_TYPES', 'general', '["annual", "sick", "maternity", "paternity", "compassionate", "unpaid", "off-day"]', 'Available leave types', 'array'),
+      ('JOB_STATUSES', 'general', '["open", "closed", "filled"]', 'Available job statuses', 'array'),
+      ('PUNCH_ACTIONS', 'general', '["checkIn", "breakOut", "breakIn", "checkOut"]', 'Available punch actions', 'array')
+    ON CONFLICT (setting_key, category) DO UPDATE SET
+      setting_value = EXCLUDED.setting_value,
+      description = EXCLUDED.description,
+      data_type = EXCLUDED.data_type,
+      updated_at = NOW()
+  `);
+
+  // Settings audit log table
+  await query(`
+    CREATE TABLE IF NOT EXISTS settings_audit_log (
+      id BIGSERIAL PRIMARY KEY,
+      setting_key TEXT NOT NULL,
+      category TEXT,
+      old_value TEXT,
+      new_value TEXT,
+      changed_by BIGINT,
+      changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      impact_analysis TEXT,
+      reason TEXT
+    )
   `);
 
   // Recruitment: Jobs table
@@ -226,6 +284,16 @@ const initDatabase = async () => {
   await query(`ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS linked_via TEXT`);
   await query(`ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS linked_at TIMESTAMPTZ`);
 
+  // Multi-step form data columns
+  await query(`ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS personal_info JSONB`);
+  await query(`ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS address_info JSONB`);
+  await query(`ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS position_details JSONB`);
+  await query(`ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS education JSONB`);
+  await query(`ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS employment_history JSONB`);
+  await query(`ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS "references" JSONB`);
+  await query(`ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS skills JSONB`);
+  await query(`ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS declaration JSONB`);
+
   await query(`
     CREATE TABLE IF NOT EXISTS application_user_links (
       id SERIAL PRIMARY KEY,
@@ -285,13 +353,17 @@ const initDatabase = async () => {
   await query(`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS performance JSONB`);
   await query(`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS documents JSONB`);
 
+  // Update attendance shift constraint to include Night
+  await query(`ALTER TABLE attendance DROP CONSTRAINT IF EXISTS attendance_shift_check`);
+  await query(`ALTER TABLE attendance ADD CONSTRAINT attendance_shift_check CHECK (shift IN ('Morning', 'Afternoon', 'Night'))`);
+
   await query(`
     CREATE TABLE IF NOT EXISTS attendance (
       id BIGSERIAL PRIMARY KEY,
       employee_id BIGINT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
       attendance_date DATE NOT NULL,
       status TEXT NOT NULL DEFAULT 'Present' CHECK (status IN ('Present', 'Absent', 'Leave')),
-      shift TEXT CHECK (shift IN ('Morning', 'Afternoon')),
+      shift TEXT CHECK (shift IN ('Morning', 'Afternoon', 'Night')),
       punch_state TEXT CHECK (punch_state IN ('checkIn', 'breakOut', 'breakIn', 'checkOut')),
       check_in TIMESTAMPTZ,
       break_out TIMESTAMPTZ,
@@ -396,7 +468,8 @@ const initDatabase = async () => {
       ('maternity', true, 90, false, '{"day_count_mode":"calendar_days","requires_balance":false,"statutory":true,"annual_accrual_continues":true,"department_threshold_pct":20}'::jsonb),
       ('paternity', true, 14, false, '{"day_count_mode":"calendar_days","requires_balance":false,"statutory":true,"department_threshold_pct":20}'::jsonb),
       ('compassionate', false, 10, false, '{"day_count_mode":"calendar_days","requires_balance":false,"department_threshold_pct":20}'::jsonb),
-      ('unpaid', false, 30, false, '{"day_count_mode":"calendar_days","requires_balance":false,"allow_negative_balance":false}'::jsonb)
+      ('unpaid', false, 30, false, '{"day_count_mode":"calendar_days","requires_balance":false,"allow_negative_balance":false}'::jsonb),
+      ('off-day', false, 1, true, '{"day_count_mode":"working_days","requires_balance":false,"allow_negative_balance":false,"department_threshold_pct":20}'::jsonb)
     ON CONFLICT (type) DO UPDATE SET
       requires_attachment = EXCLUDED.requires_attachment,
       max_days = EXCLUDED.max_days,

@@ -28,6 +28,7 @@ const normalizeApplication = (raw = {}) => ({
   status: raw.status ?? 'pending',
   applicationData: raw.applicationData ?? raw.applicationdata ?? null,
   appliedAt: raw.appliedAt ?? raw.appliedat ?? raw.createdAt ?? raw.createdat ?? null,
+  autoScore: raw.autoScore ?? null,
 });
 
 
@@ -41,6 +42,9 @@ export default function ApplicantReviewDashboard({ jobId }) {
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [scoring, setScoring] = useState(false)
+  const [scores, setScores] = useState(null)
+  const [scoreModal, setScoreModal] = useState(null)
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -75,6 +79,16 @@ export default function ApplicantReviewDashboard({ jobId }) {
       toast.error('Update failed');
     }
   };
+
+  const handleScoreApplicants = async () => {
+    setScoring(true)
+    try {
+      const res = await api.post(`/jobs/${jobId}/score-applicants`)
+      setScores(res.data || [])
+      toast.success('Scoring complete')
+    } catch { toast.error('Scoring failed') }
+    finally { setScoring(false) }
+  }
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredApplications = applications.filter((row) => {
@@ -128,7 +142,10 @@ export default function ApplicantReviewDashboard({ jobId }) {
               <option value="hired">Hired</option>
             </select>
           </div>
-          <Button type="button" variant="secondary" onClick={handleExportApplicationsReport}>Export Report</Button>
+          <Button type="button" variant="outline" onClick={handleExportApplicationsReport}>Export Report</Button>
+          <Button type="button" variant="primary" onClick={handleScoreApplicants} disabled={scoring}>
+            {scoring ? 'Scoring...' : 'Score Applicants'}
+          </Button>
         </div>
         <Table
           columns={[
@@ -140,6 +157,19 @@ export default function ApplicantReviewDashboard({ jobId }) {
               key: 'cvPath',
               label: 'CV',
               render: (cvPath) => cvPath ? <a href={toCvUrl(cvPath)} target="_blank" rel="noopener noreferrer">Download</a> : '-',
+            },
+            {
+              key: 'autoScore',
+              label: 'Score',
+              render: (val, row) => {
+                const s = row.autoScore != null ? row.autoScore : (scores?.find(sc => sc.applicationId === row.id)?.autoScore)
+                if (s == null) return <span className="text-xs text-slate-400">—</span>
+                const color = s >= 70 ? 'text-green-600' : s >= 40 ? 'text-yellow-600' : 'text-red-600'
+                return <span className={`font-bold cursor-pointer ${color}`} onClick={() => {
+                  const detail = scores?.find(sc => sc.applicationId === row.id)
+                  if (detail) setScoreModal(detail)
+                }}>{s}%</span>
+              },
             },
             {
               key: 'actions',
@@ -175,17 +205,39 @@ export default function ApplicantReviewDashboard({ jobId }) {
             </div>
             <div className="form-group">
               <label>Recruiter Announcement</label>
-              <textarea
-                className="form-input"
-                rows={4}
-                value={recruiterAnnouncement}
-                onChange={(e) => setRecruiterAnnouncement(e.target.value)}
-                placeholder="Add an update, interview note, or next-step instruction"
-              />
+              <textarea className="form-input" rows={4} value={recruiterAnnouncement} onChange={(e) => setRecruiterAnnouncement(e.target.value)} placeholder="Add an update, interview note, or next-step instruction" />
             </div>
             <div className="flex gap-2 justify-end">
               <Button variant="primary" onClick={handleStatusUpdate}>Update</Button>
-              <Button variant="ghost" onClick={() => setShowModal(false)}>Close</Button>
+              <Button variant="outline" onClick={() => setShowModal(false)}>Close</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+      <Modal isOpen={!!scoreModal} onClose={() => setScoreModal(null)} title="Score Breakdown">
+        {scoreModal && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="text-lg font-bold">{scoreModal.applicantName}</span>
+              <span className={`text-2xl font-bold ${scoreModal.autoScore >= 70 ? 'text-green-600' : scoreModal.autoScore >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>{scoreModal.autoScore}%</span>
+            </div>
+            <div className="border-t pt-3">
+              <h4 className="font-bold mb-2">Keyword Matches ({scoreModal.keywordScore}%)</h4>
+              {scoreModal.keywordMatches?.length > 0 ? scoreModal.keywordMatches.map((m, i) => (
+                <div key={i} className="flex justify-between text-sm py-1"><span>{m.keyword}</span><span className="text-slate-500">{m.matches} matches</span></div>
+              )) : <p className="text-sm text-slate-400">No keyword matches found.</p>}
+            </div>
+            <div className="border-t pt-3">
+              <h4 className="font-bold mb-2">Criteria Results ({scoreModal.criteriaScore}%)</h4>
+              {scoreModal.criteriaResults?.length > 0 ? scoreModal.criteriaResults.map((c, i) => (
+                <div key={i} className="flex justify-between text-sm py-1">
+                  <span>{c.label}</span>
+                  <span className={c.met ? 'text-green-600' : 'text-red-500'}>{c.met ? '✓ Met' : '✗ Not Met'}{c.detail ? ` (${c.detail})` : ''}</span>
+                </div>
+              )) : <p className="text-sm text-slate-400">No criteria evaluated.</p>}
+            </div>
+            <div className="flex gap-2 justify-end border-t pt-3">
+              <Button variant="outline" onClick={() => setScoreModal(null)}>Close</Button>
             </div>
           </div>
         )}

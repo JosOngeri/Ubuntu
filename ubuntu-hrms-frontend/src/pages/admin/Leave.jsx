@@ -323,7 +323,7 @@ const AdminLeave = () => {
                 <option value="Awaiting_Documentation">Awaiting Documentation</option>
               </select>
             </div>
-            <Button type="button" variant="secondary" onClick={handleExportLeavesReport}>
+            <Button type="button" variant="outline" onClick={handleExportLeavesReport}>
               Export Report
             </Button>
           </div>

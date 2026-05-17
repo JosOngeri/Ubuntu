@@ -3,9 +3,9 @@ import { toast } from 'react-toastify'
 import DashboardLayout from '../../components/DashboardLayout'
 import { employeeAPI, leaveAPI } from '../../services/api'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSettings } from '../../contexts/SettingsContext'
 
 const approvedStatuses = ['Pending', 'Pending_Approval', 'Pending_Documentation', 'Awaiting_Documentation']
-const leaveKinds = ['annual', 'sick']
 
 const normalizeDate = (value) => {
   const date = new Date(value)
@@ -23,12 +23,15 @@ const overlaps = (left, right) => {
 
 export default function LeaveApprovals() {
   const { user } = useAuth()
+  const { getLeaveTypes } = useSettings()
   const [leaves, setLeaves] = useState([])
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [selectedLeaveId, setSelectedLeaveId] = useState(null)
   const [error, setError] = useState('')
+
+  const leaveKinds = getLeaveTypes()
 
   const employeeNameMap = useMemo(() => {
     return employees.reduce((accumulator, employee) => {
@@ -99,9 +102,9 @@ export default function LeaveApprovals() {
     <DashboardLayout>
       <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-950 dark:text-white">Leave Approvals</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-950 dark:text-white">Leave and Off-days Approvals</h1>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            Review annual and sick requests for your team, with conflict visibility for overlapping leave dates.
+            Review annual, sick, and off-day requests for your team, with conflict visibility for overlapping leave dates.
           </p>
         </div>
         <button

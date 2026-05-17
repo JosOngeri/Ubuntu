@@ -75,7 +75,7 @@ export default function Payroll() {
     )},
     { key: 'actions', label: 'Actions', render: (_, row) => (
       <div className="flex gap-2 items-center">
-        <Button size="sm" variant="secondary" onClick={() => setViewPayslip(row)}>View</Button>
+        <Button size="sm" variant="outline" onClick={() => setViewPayslip(row)}>View</Button>
         {row.status === 'Draft' ? (
           <Button size="sm" variant="success" onClick={() => handleApprove(row.id)}>Approve</Button>
         ) : (
@@ -119,7 +119,7 @@ export default function Payroll() {
               <h2 className="text-lg font-bold">Drafts & History</h2>
               <p className="text-sm text-slate-500">Review calculated drafts before approving.</p>
             </div>
-            <Button variant="secondary" onClick={() => navigate('/payroll/disburse')}>Proceed to Disbursement →</Button>
+            <Button variant="outline" onClick={() => navigate('/payroll/disburse')}>Proceed to Disbursement →</Button>
           </div>
           <Table columns={columns} data={payslips} loading={loading} />
         </Card>

@@ -2,8 +2,14 @@ const express = require('express');
 const router = express.Router();
 const {
   getSettings,
+  getSettingsByCategory,
+  getCategories,
   getSettingByKey,
   updateSetting,
+  createSetting,
+  deleteSetting,
+  getAuditLog,
+  getAllAuditLogs,
   getOfficeLocation,
   updateOfficeLocation,
   updateEmployeeAttendancePermission,
@@ -19,8 +25,18 @@ router.use(auth);
  * Settings CRUD endpoints
  */
 router.get('/', getSettings);
+router.get('/categories', getCategories);
+router.get('/category/:category', getSettingsByCategory);
 router.get('/:key', getSettingByKey);
-router.put('/:key', roleMiddleware(['admin']), updateSetting);
+router.put('/:key', roleMiddleware(['owner', 'manager']), updateSetting);
+router.post('/', roleMiddleware(['owner', 'manager']), createSetting);
+router.delete('/:key', roleMiddleware(['owner', 'manager']), deleteSetting);
+
+/**
+ * Audit log endpoints (owner/manager only)
+ */
+router.get('/audit/:key', roleMiddleware(['owner', 'manager']), getAuditLog);
+router.get('/audit/all', roleMiddleware(['owner', 'manager']), getAllAuditLogs);
 
 /**
  * Office Location endpoints (admin only)

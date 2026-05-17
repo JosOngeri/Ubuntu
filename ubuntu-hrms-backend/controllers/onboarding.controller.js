@@ -2,6 +2,15 @@ const Onboarding = require('../models/Onboarding.model');
 const Employee = require('../models/Employee.model');
 const Asset = require('../models/Asset.model');
 
+const populateEmployee = async (onboarding) => {
+  if (!onboarding.employeeId) return onboarding;
+  const employee = await Employee.findById(onboarding.employeeId);
+  if (employee) {
+    onboarding.employeeId = employee.toJSON();
+  }
+  return onboarding;
+};
+
 const DEFAULT_STEPS = [
   { name: 'offer_letter', label: 'Generate Offer Letter' },
   { name: 'documents', label: 'Collect Documents (ID, Certificates, KRA, NSSF, NHIF)' },
@@ -18,11 +27,9 @@ exports.getAll = async (req, res) => {
     const { status } = req.query;
     const filter = {};
     if (status) filter.status = status;
-    const onboardings = await Onboarding.find(filter)
-      .populate('employeeId', 'firstName lastName email department position')
-      .populate('supervisorId', 'firstName lastName')
-      .sort({ createdAt: -1 });
-    res.json(onboardings);
+    const onboardings = await Onboarding.find(filter).sort({ createdAt: -1 });
+    const populated = await Promise.all(onboardings.map(populateEmployee));
+    res.json(populated);
   } catch (err) {
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
@@ -30,11 +37,9 @@ exports.getAll = async (req, res) => {
 
 exports.getById = async (req, res) => {
   try {
-    const onboarding = await Onboarding.findById(req.params.id)
-      .populate('employeeId')
-      .populate('supervisorId', 'firstName lastName')
-      .populate('assetsAssigned.assetId');
+    const onboarding = await Onboarding.findById(req.params.id);
     if (!onboarding) return res.status(404).json({ msg: 'Onboarding not found' });
+    await populateEmployee(onboarding);
     res.json(onboarding);
   } catch (err) {
     res.status(500).json({ msg: 'Server error', error: err.message });
@@ -144,8 +149,9 @@ exports.addProbationReview = async (req, res) => {
 
 exports.generateOfferLetter = async (req, res) => {
   try {
-    const onboarding = await Onboarding.findById(req.params.id).populate('employeeId');
+    const onboarding = await Onboarding.findById(req.params.id);
     if (!onboarding) return res.status(404).json({ msg: 'Onboarding not found' });
+    await populateEmployee(onboarding);
     const emp = onboarding.employeeId;
     const letter = {
       date: new Date().toLocaleDateString(),

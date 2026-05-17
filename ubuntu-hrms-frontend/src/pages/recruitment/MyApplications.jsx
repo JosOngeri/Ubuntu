@@ -81,7 +81,7 @@ export default function MyApplications() {
                   key={value}
                   type="button"
                   size="sm"
-                  variant={filter === value ? 'primary' : 'secondary'}
+                  variant={filter === value ? 'primary' : 'outline'}
                   onClick={() => setFilter(value)}
                 >
                   {value === 'all' ? 'All' : value.charAt(0).toUpperCase() + value.slice(1)}

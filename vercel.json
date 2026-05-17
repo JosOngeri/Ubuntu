@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "ubuntu-hrms-frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/ubuntu-hrms-backend/server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/ubuntu-hrms-frontend/$1"
+    }
+  ]
+}

@@ -30,9 +30,9 @@ const Input = React.forwardRef(
           type={type}
           className={`w-full ${sizeClasses[size] || sizeClasses.md} rounded-lg border ${
             error
-              ? 'border-red-500 dark:border-red-600 focus:ring-red-500 dark:focus:ring-red-600'
-              : 'border-slate-300 dark:border-slate-600 focus:ring-primary dark:focus:ring-primary-light'
-          } bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 transition-colors duration-200 ${className}`}
+              ? 'border-red-500 dark:border-red-600 focus:border-red-900 dark:focus:border-red-400'
+              : 'border-slate-300 dark:border-slate-600 focus:border-slate-900 dark:focus:border-slate-100'
+          } bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none transition-all duration-200 ${className}`}
           {...props}
         />
         {error && (

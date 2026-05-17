@@ -209,7 +209,7 @@ export default function JobDetail() {
           {/* Actions */}
           <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
             <Button
-              variant="secondary"
+              variant="outline"
               onClick={() => navigate('/recruitment/jobs')}
             >
               Back to Jobs

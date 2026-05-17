@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 
 const onboardingSchema = new mongoose.Schema({
-  employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee', required: true },
-  applicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'JobApplication' },
+  employeeId: { type: String, required: true },
+  applicationId: { type: String },
   status: { type: String, enum: ['pending', 'in_progress', 'completed'], default: 'pending' },
   steps: [{
     name: { type: String, required: true },
@@ -24,7 +24,7 @@ const onboardingSchema = new mongoose.Schema({
   }],
   department: { type: String },
   position: { type: String },
-  supervisorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
+  supervisorId: { type: String },
   assetsAssigned: [{
     assetId: { type: mongoose.Schema.Types.ObjectId, ref: 'Asset' },
     assignedAt: { type: Date },

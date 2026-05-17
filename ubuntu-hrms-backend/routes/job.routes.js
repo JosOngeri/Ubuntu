@@ -26,4 +26,10 @@ router.get('/:jobId/applicants/:appId', auth, role(['admin', 'manager', 'hr']), 
 router.put('/:jobId/applicants/:appId', auth, role(['admin', 'manager', 'hr']), jobController.updateApplicant);
 router.delete('/:jobId/applicants/:appId', auth, role(['admin', 'manager', 'hr']), jobController.deleteApplicant);
 
+// Applicant scoring
+router.post('/:id/score-applicants', auth, role(['admin', 'manager', 'hr']), jobController.scoreApplicants);
+
+// Import application data to employee profile
+router.post('/applications/:appId/import-to-employee/:employeeId', auth, role(['admin', 'manager', 'hr']), jobController.importApplicationToEmployee);
+
 module.exports = router;

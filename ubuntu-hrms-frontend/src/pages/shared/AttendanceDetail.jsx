@@ -233,7 +233,7 @@ export default function AttendanceDetail() {
           {/* Actions */}
           <div className="flex gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
             <Button
-              variant="secondary"
+              variant="outline"
               onClick={() => navigate('/employee/attendance')}
             >
               Back to Attendance

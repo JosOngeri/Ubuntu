@@ -39,34 +39,34 @@ const validateEmployeePayload = (payload = {}, { partial = false } = {}) => {
   const normalized = normalizeEmployeePayload(payload);
   const errors = [];
 
-  const requireField = (fieldName, label = fieldName) => {
+  const requireField = (fieldName, label) => {
     if (!partial && (normalized[fieldName] === undefined || normalized[fieldName] === null || normalized[fieldName] === '')) {
-      errors.push(`${label} is required`);
+      errors.push(`Please enter ${label.toLowerCase()}`);
     }
   };
 
-  requireField('firstName', 'firstName');
-  requireField('lastName', 'lastName');
-  requireField('phone', 'phone');
-  requireField('mpesaPhoneNumber', 'mpesaPhoneNumber');
-  requireField('employmentType', 'employmentType');
-  requireField('wageRate', 'wageRate');
-  requireField('department', 'department');
+  requireField('firstName', 'First Name');
+  requireField('lastName', 'Last Name');
+  requireField('phone', 'Phone Number');
+  // mpesaPhoneNumber is optional
+  requireField('employmentType', 'Employment Type');
+  requireField('wageRate', 'Wage Rate');
+  requireField('department', 'Department');
 
   if (normalized.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized.email)) {
-    errors.push('email must be valid');
+    errors.push('Please enter a valid email address');
   }
 
   if (normalized.employmentType && !EMPLOYMENT_TYPES.includes(normalized.employmentType)) {
-    errors.push(`employmentType must be one of ${EMPLOYMENT_TYPES.join(', ')}`);
+    errors.push(`Employment type must be one of: ${EMPLOYMENT_TYPES.join(', ')}`);
   }
 
   if (normalized.wageRate !== undefined && normalized.wageRate !== null && normalized.wageRate !== '' && Number.isNaN(normalized.wageRate)) {
-    errors.push('wageRate must be a number');
+    errors.push('Wage rate must be a valid number');
   }
 
   if (normalized.wageRate !== undefined && normalized.wageRate !== null && normalized.wageRate !== '' && Number(normalized.wageRate) < 0) {
-    errors.push('wageRate must be greater than or equal to 0');
+    errors.push('Wage rate cannot be negative');
   }
 
   return { normalized, errors };

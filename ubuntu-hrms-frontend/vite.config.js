@@ -7,4 +7,11 @@ export default defineConfig({
     port: 5177,
     open: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  },
 })

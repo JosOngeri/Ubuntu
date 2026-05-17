@@ -172,7 +172,7 @@ export default function UserDetail() {
           {/* Actions */}
           <div className="flex gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
             <Button
-              variant="secondary"
+              variant="outline"
               onClick={() => navigate('/admin/users')}
             >
               Back to Users

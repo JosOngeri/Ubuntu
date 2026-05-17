@@ -1,5 +1,6 @@
 const ContractorQuote = require('../models/ContractorQuote.model');
 const Milestone = require('../models/Milestone.model');
+const Employee = require('../models/Employee.model');
 
 // Quotes
 exports.getAllQuotes = async (req, res) => {
@@ -122,6 +123,19 @@ exports.verifyMilestone = async (req, res) => {
       milestone.status = 'rejected';
     }
     await milestone.save();
+
+    if (approved) {
+      const allMs = await Milestone.find({ quoteId: milestone.quoteId });
+      const allDone = allMs.every(m => m.status === 'verified' || m.status === 'paid');
+      if (allDone && allMs.length > 0) {
+        const avg = Math.round(allMs.reduce((s, m) => s + (m.kpiScore?.overall || 0), 0) / allMs.length);
+        const quote = await ContractorQuote.findById(milestone.quoteId);
+        if (quote?.contractorId) {
+          await Employee.findByIdAndUpdate(quote.contractorId, { 'kpi.overallScore': avg, 'kpi.lastReviewed': new Date(), 'kpi.milestonesCompleted': allMs.length });
+        }
+      }
+    }
+
     res.json(milestone);
   } catch (err) {
     res.status(500).json({ msg: 'Server error', error: err.message });

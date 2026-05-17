@@ -47,7 +47,7 @@ const ManagerDashboard = () => {
       </div>
 
       <div className="grid-4">
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => navigate('/admin/employees')}>
           <div className="stat-card">
             <div className="stat-icon">
               <BsPeople size={28} />
@@ -58,7 +58,7 @@ const ManagerDashboard = () => {
           </div>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => navigate('/manager/attendance')}>
           <div className="stat-card">
             <div className="stat-icon present">
               <BsClipboardCheck size={28} />
@@ -69,7 +69,7 @@ const ManagerDashboard = () => {
           </div>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => navigate('/leave/approvals')}>
           <div className="stat-card">
             <div className="stat-icon pending">
               <BsHandThumbsUp size={28} />
@@ -80,7 +80,7 @@ const ManagerDashboard = () => {
           </div>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => navigate('/kpi/manage')}>
           <div className="stat-card">
             <div className="stat-icon success">
               <BsGraphUp size={28} />
@@ -100,19 +100,19 @@ const ManagerDashboard = () => {
               Quick Actions
             </h3>
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Button variant="secondary" className="justify-start py-3" onClick={() => navigate('/leave/approvals')}>
+              <Button variant="outline" className="justify-start py-3" onClick={() => navigate('/leave/approvals')}>
                 <BsCheckCircle className="text-blue-500" size={18} />
                 Review Leaves
               </Button>
-              <Button variant="secondary" className="justify-start py-3" onClick={() => navigate('/manager/attendance')}>
+              <Button variant="outline" className="justify-start py-3" onClick={() => navigate('/manager/attendance')}>
                 <BsClipboardCheck className="text-green-500" size={18} />
                 Manage Attendance
               </Button>
-              <Button variant="secondary" className="justify-start py-3" onClick={() => navigate('/kpi/manage')}>
+              <Button variant="outline" className="justify-start py-3" onClick={() => navigate('/kpi/manage')}>
                 <BsGraphUp className="text-purple-500" size={18} />
                 Set KPI Goals
               </Button>
-              <Button variant="secondary" className="justify-start py-3" onClick={() => navigate('/payroll/disburse')}>
+              <Button variant="outline" className="justify-start py-3" onClick={() => navigate('/payroll/disburse')}>
                 <BsCreditCard className="text-amber-500" size={18} />
                 Disburse Payroll
               </Button>

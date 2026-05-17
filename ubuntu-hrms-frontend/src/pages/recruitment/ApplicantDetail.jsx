@@ -263,7 +263,7 @@ export default function ApplicantDetail() {
           {/* Actions */}
           <div className="flex gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
             <Button
-              variant="secondary"
+              variant="outline"
               onClick={() => navigate(`/recruitment/jobs/${jobId}/applicants`)}
             >
               Back to Applicants

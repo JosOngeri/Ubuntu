@@ -7,6 +7,33 @@ const User = require('../models/User.model');
 const Job = require('../models/Job.model');
 const JobApplication = require('../models/JobApplication.model');
 
+const populateEmployeeForAttendance = async (record) => {
+  if (!record.employeeId) return record;
+  const employee = await Employee.findById(record.employeeId);
+  if (employee) {
+    record.employeeId = employee.toJSON();
+  }
+  return record;
+};
+
+const populateEmployeeForLeave = async (record) => {
+  if (!record.employee) return record;
+  const employee = await Employee.findById(record.employee);
+  if (employee) {
+    record.employee = employee.toJSON();
+  }
+  return record;
+};
+
+const populateEmployeeForPayment = async (record) => {
+  if (!record.employee) return record;
+  const employee = await Employee.findById(record.employee);
+  if (employee) {
+    record.employee = employee.toJSON();
+  }
+  return record;
+};
+
 const parseDateRange = (range, customStart, customEnd) => {
   const now = new Date();
   let start, end;
@@ -74,10 +101,11 @@ const attendanceReport = async (req, res) => {
     const filter = { date: { $gte: start, $lt: end } };
     if (employeeId) filter.employee_id = employeeId;
 
-    let records = await Attendance.find(filter).populate('employee_id', 'firstName lastName department').lean();
+    let records = await Attendance.find(filter).lean();
+    records = await Promise.all(records.map(populateEmployeeForAttendance));
 
     if (department) {
-      records = records.filter(r => r.employee_id?.department === department);
+      records = records.filter(r => r.employeeId?.department === department);
     }
 
     const summary = {
@@ -114,12 +142,11 @@ const leaveReport = async (req, res) => {
     if (status && status !== 'all') filter.status = status;
     if (type && type !== 'all') filter.type = type;
 
-    let records = await Leave.find(filter)
-      .populate('employee_id', 'firstName lastName department')
-      .lean();
+    let records = await Leave.find(filter).lean();
+    records = await Promise.all(records.map(populateEmployeeForLeave));
 
     if (department && department !== 'all') {
-      records = records.filter(r => r.employee_id?.department === department);
+      records = records.filter(r => r.employee?.department === department);
     }
 
     const summary = {
@@ -161,12 +188,11 @@ const payrollReport = async (req, res) => {
     const filter = { createdAt: { $gte: start, $lt: end } };
     if (status && status !== 'all') filter.status = status;
 
-    let records = await Payment.find(filter)
-      .populate('employee_id', 'firstName lastName department')
-      .lean();
+    let records = await Payment.find(filter).lean();
+    records = await Promise.all(records.map(populateEmployeeForPayment));
 
     if (department && department !== 'all') {
-      records = records.filter(r => r.employee_id?.department === department);
+      records = records.filter(r => r.employee?.department === department);
     }
 
     const summary = {
@@ -202,12 +228,10 @@ const kpiReport = async (req, res) => {
     const filter = { createdAt: { $gte: start, $lt: end } };
     if (status && status !== 'all') filter.status = status;
 
-    let records = await KPI.find(filter)
-      .populate('employee_id', 'firstName lastName department')
-      .lean();
+    let records = await KPI.find(filter).lean();
 
     if (department && department !== 'all') {
-      records = records.filter(r => r.employee_id?.department === department);
+      records = records.filter(r => r.department === department);
     }
 
     const evaluated = records.filter(r => r.final_score != null);

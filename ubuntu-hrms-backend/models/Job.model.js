@@ -34,6 +34,8 @@ const ensureColumns = async () => {
   await pool.query(`ALTER TABLE ${JOB_TABLE} ADD COLUMN IF NOT EXISTS postedby INTEGER`);
   await pool.query(`ALTER TABLE ${JOB_TABLE} ADD COLUMN IF NOT EXISTS createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
   await pool.query(`ALTER TABLE ${JOB_TABLE} ADD COLUMN IF NOT EXISTS updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+  await pool.query(`ALTER TABLE ${JOB_TABLE} ADD COLUMN IF NOT EXISTS qualifications JSONB`);
+  await pool.query(`ALTER TABLE ${JOB_TABLE} ADD COLUMN IF NOT EXISTS evaluationparams JSONB`);
 };
 
 const JOB_SELECT_COLUMNS = `
@@ -50,13 +52,16 @@ const JOB_SELECT_COLUMNS = `
   benefits,
   applicationdeadline AS "applicationDeadline",
   postedby AS "postedBy",
+  qualifications,
+  evaluationparams AS "evaluationParams",
+  advertisement_data AS "advertisementData",
   createdat AS "createdAt",
   updatedat AS "updatedAt"
 `;
 
 const Job = {
   async create(data) {
-    const { title, description, department, location, employmentType, status = 'open', salaryRange, requirements, responsibilities, benefits, applicationDeadline, postedBy } = data;
+    const { title, description, department, location, employmentType, status = 'open', salaryRange, requirements, responsibilities, benefits, applicationDeadline, postedBy, qualifications, evaluationParams, advertisementData } = data;
     const res = await pool.query(
       `
         INSERT INTO ${JOB_TABLE} (
@@ -71,12 +76,15 @@ const Job = {
           responsibilities,
           benefits,
           applicationdeadline,
-          postedby
+          postedby,
+          qualifications,
+          evaluationparams,
+          advertisement_data
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         RETURNING ${JOB_SELECT_COLUMNS}
       `,
-      [title, description, department, location, employmentType, status, salaryRange, requirements, responsibilities, benefits, applicationDeadline, postedBy]
+      [title, description, department, location, employmentType, status, salaryRange, requirements, responsibilities, benefits, applicationDeadline, postedBy, JSON.stringify(qualifications || []), JSON.stringify(evaluationParams || {}), JSON.stringify(advertisementData || {})]
     );
     return res.rows[0];
   },
@@ -109,6 +117,8 @@ const Job = {
       benefits: 'benefits',
       applicationDeadline: 'applicationdeadline',
       postedBy: 'postedby',
+      qualifications: 'qualifications',
+      evaluationParams: 'evaluationparams',
     };
     const fields = [];
     const values = [];

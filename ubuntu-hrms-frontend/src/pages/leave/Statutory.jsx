@@ -2,8 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { toast } from 'react-toastify'
 import DashboardLayout from '../../components/DashboardLayout'
 import { leaveAPI } from '../../services/api'
-
-const statutoryTypes = ['maternity']
+import { useSettings } from '../../contexts/SettingsContext'
 
 const buildAttachmentUrl = (path) => {
   if (!path) return ''
@@ -12,10 +11,13 @@ const buildAttachmentUrl = (path) => {
 }
 
 export default function LeaveStatutory() {
+  const { getLeaveTypes } = useSettings()
   const [leaves, setLeaves] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState(null)
   const [error, setError] = useState('')
+
+  const statutoryTypes = getLeaveTypes().filter(type => ['maternity', 'paternity'].includes(type.toLowerCase()))
 
   const statutoryLeaves = useMemo(() => {
     return leaves.filter((leave) => statutoryTypes.includes(String(leave.type).toLowerCase()))
