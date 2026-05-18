@@ -195,6 +195,31 @@ const initDatabase = async () => {
   await query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS benefits TEXT`);
   await query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS applicationdeadline DATE`);
 
+  // Attendance table - create early before other tables that might reference it
+  await query(`
+    CREATE TABLE IF NOT EXISTS attendance (
+      id BIGSERIAL PRIMARY KEY,
+      employee_id BIGINT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+      attendance_date DATE NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Present' CHECK (status IN ('Present', 'Absent', 'Leave')),
+      shift TEXT CHECK (shift IN ('Morning', 'Afternoon', 'Night')),
+      punch_state TEXT CHECK (punch_state IN ('checkIn', 'breakOut', 'breakIn', 'checkOut')),
+      check_in TIMESTAMPTZ,
+      break_out TIMESTAMPTZ,
+      break_in TIMESTAMPTZ,
+      check_out TIMESTAMPTZ,
+      total_hours_worked NUMERIC(8,2),
+      punch_history JSONB NOT NULL DEFAULT '[]'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (employee_id, attendance_date)
+    )
+  `);
+
+  // Update attendance shift constraint to include Night
+  await query(`ALTER TABLE attendance DROP CONSTRAINT IF EXISTS attendance_shift_check`);
+  await query(`ALTER TABLE attendance ADD CONSTRAINT attendance_shift_check CHECK (shift IN ('Morning', 'Afternoon', 'Night'))`);
+
   // Contractor-related tables
   await query(`
     CREATE TABLE IF NOT EXISTS projects (
@@ -229,31 +254,34 @@ const initDatabase = async () => {
     )
   `);
 
-  // Insert sample data for contractors (assuming user with id 1 is contractor)
+  // Insert sample data for contractors (only if user with id 1 exists)
   try {
-    await query(`
-      INSERT INTO projects (name, contractor_id, status, due_date)
-      VALUES 
-        ('HR System Integrations', 1, 'In Progress', '2026-06-18'),
-        ('Payroll Automation', 1, 'Review', '2026-06-24'),
-        ('Benefits Onboarding', 1, 'Completed', '2026-05-30')
-      ON CONFLICT DO NOTHING
-    `);
+    const userExists = await query(`SELECT id FROM users WHERE id = 1 LIMIT 1`);
+    if (userExists.rows.length > 0) {
+      await query(`
+        INSERT INTO projects (name, contractor_id, status, due_date)
+        VALUES 
+          ('HR System Integrations', 1, 'In Progress', '2026-06-18'),
+          ('Payroll Automation', 1, 'Review', '2026-06-24'),
+          ('Benefits Onboarding', 1, 'Completed', '2026-05-30')
+        ON CONFLICT DO NOTHING
+      `);
 
-    await query(`
-      INSERT INTO invoices (id, contractor_id, amount, status, due_date)
-      VALUES 
-        ('INV-202', 1, 1850.00, 'Pending', '2026-06-25'),
-        ('INV-203', 1, 920.00, 'Approved', '2026-06-12'),
-        ('INV-204', 1, 1340.00, 'Draft', '2026-07-05')
-      ON CONFLICT DO NOTHING
-    `);
+      await query(`
+        INSERT INTO invoices (id, contractor_id, amount, status, due_date)
+        VALUES 
+          ('INV-202', 1, 1850.00, 'Pending', '2026-06-25'),
+          ('INV-203', 1, 920.00, 'Approved', '2026-06-12'),
+          ('INV-204', 1, 1340.00, 'Draft', '2026-07-05')
+        ON CONFLICT DO NOTHING
+      `);
 
-    await query(`
-      INSERT INTO contractor_performance (contractor_id, delivery_rate)
-      VALUES (1, 92.00)
-      ON CONFLICT DO NOTHING
-    `);
+      await query(`
+        INSERT INTO contractor_performance (contractor_id, delivery_rate)
+        VALUES (1, 92.00)
+        ON CONFLICT DO NOTHING
+      `);
+    }
   } catch (error) {
     console.log('Sample data insertion skipped or failed:', error.message);
   }
