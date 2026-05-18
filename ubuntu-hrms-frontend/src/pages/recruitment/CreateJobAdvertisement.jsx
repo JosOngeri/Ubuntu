@@ -8,23 +8,27 @@ import Card from '../../components/common/Card';
 import DashboardLayout from '../../components/DashboardLayout';
 import api from '../../services/api';
 
+const selectClass = 'w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-slate-900 dark:focus:border-slate-100 transition-all duration-200';
+const textareaClass = 'w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-slate-900 dark:focus:border-slate-100 transition-all duration-200 resize-vertical';
+const labelClass = 'block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1';
+const sectionClass = 'border-b border-slate-200 dark:border-slate-700 pb-6';
+const sectionTitle = 'text-base font-semibold text-slate-800 dark:text-slate-100 mb-4';
+
 const CreateJobAdvertisement = () => {
   const navigate = useNavigate();
-  const { getDepartments, getEmploymentTypes } = useSettings();
-  
+  const { getDepartments, getEmploymentTypes, getJobStatuses } = useSettings();
+
   const [form, setForm] = useState({
     title: '',
-    role: '',
+    description: '',
     department: '',
     location: '',
-    employmentType: 'Full-Time',
-    vacancies: 1,
-    gender: 'Equal Opportunity',
-    applicationDeadline: '',
+    employmentType: '',
+    status: 'open',
     salaryRange: '',
-    introduction: '',
+    applicationDeadline: '',
     responsibilities: '',
-    requiredSkills: '',
+    requirements: '',
     qualifications: '',
     benefits: '',
   });
@@ -36,6 +40,7 @@ const CreateJobAdvertisement = () => {
 
   const departments = getDepartments();
   const employmentTypes = getEmploymentTypes();
+  const jobStatuses = getJobStatuses();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -44,33 +49,20 @@ const CreateJobAdvertisement = () => {
 
   const handleLetterheadChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setLetterheadFile(file);
-    }
+    if (file) setLetterheadFile(file);
   };
 
   const handleLetterheadUpload = async () => {
-    if (!letterheadFile) {
-      toast.error('Please select a letterhead file');
-      return;
-    }
-
+    if (!letterheadFile) { toast.error('Please select a letterhead file'); return; }
     const formData = new FormData();
     formData.append('letterhead', letterheadFile);
-
     try {
       setUploadingLetterhead(true);
-      const response = await api.post('/advertisements/upload-letterhead', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
+      await api.post('/advertisements/upload-letterhead', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       toast.success('Letterhead uploaded successfully');
       setLetterheadFile(null);
     } catch (err) {
       toast.error('Failed to upload letterhead');
-      console.error('Upload error:', err);
     } finally {
       setUploadingLetterhead(false);
     }
@@ -79,31 +71,20 @@ const CreateJobAdvertisement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      // Create job posting first
       const jobData = {
         title: form.title,
-        description: form.introduction,
+        description: form.description,
         department: form.department,
         location: form.location,
         employmentType: form.employmentType,
-        status: 'open',
+        status: form.status,
         salaryRange: form.salaryRange,
-        requirements: form.requiredSkills,
+        applicationDeadline: form.applicationDeadline || undefined,
         responsibilities: form.responsibilities,
+        requirements: form.requirements,
+        qualifications: form.qualifications ? [form.qualifications] : [],
         benefits: form.benefits,
-        applicationDeadline: form.applicationDeadline,
-        qualifications: form.qualifications,
-        // Extended fields for advertisement
-        advertisementData: {
-          role: form.role,
-          vacancies: form.vacancies,
-          gender: form.gender,
-          introduction: form.introduction,
-          responsibilities: form.responsibilities,
-          requiredSkills: form.requiredSkills,
-        },
       };
 
       const response = await fetch('/api/jobs', {
@@ -115,14 +96,15 @@ const CreateJobAdvertisement = () => {
         body: JSON.stringify(jobData),
       });
 
-      if (!response.ok) throw new Error('Failed to create job');
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.msg || 'Failed to create job');
+      }
 
       const job = await response.json();
-
-      // Generate advertisement files
       await generateAdvertisement(job);
-
-      toast.success('Job created and advertisement generated successfully');
+      toast.success('Job created successfully');
+      navigate('/recruitment/jobs');
     } catch (err) {
       toast.error(err.message || 'Failed to create job');
     } finally {
@@ -134,109 +116,53 @@ const CreateJobAdvertisement = () => {
     try {
       const response = await fetch(`/api/advertisements/generate/${job.id}`, {
         method: 'POST',
-        headers: {
-          'x-auth-token': localStorage.getItem('authToken'),
-        },
+        headers: { 'x-auth-token': localStorage.getItem('authToken') },
       });
-
-      if (!response.ok) throw new Error('Failed to generate advertisement');
-
+      if (!response.ok) return;
       const data = await response.json();
       setGeneratedFiles({ pdf: data.pdfUrl, jpeg: data.jpegUrl });
-    } catch (err) {
-      console.error('Advertisement generation error:', err);
-      toast.error('Failed to generate advertisement files');
-    }
-  };
-
-  const downloadPDF = () => {
-    if (generatedFiles.pdf) {
-      window.open(generatedFiles.pdf, '_blank');
-    }
-  };
-
-  const downloadJPEG = () => {
-    if (generatedFiles.jpeg) {
-      window.open(generatedFiles.jpeg, '_blank');
-    }
+    } catch {}
   };
 
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Create Job Advertisement</h1>
-          <p className="text-gray-600 mt-1">Create a job posting and generate marketing materials</p>
+      <div className="max-w-4xl mx-auto">
+        <div className="page-header">
+          <h1 className="page-title">Create Job Posting</h1>
+          <p className="page-subtitle">Fill in all details to create a new job advertisement</p>
         </div>
 
         <Card>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Letterhead Upload */}
-            <div className="border-b pb-4">
-              <h2 className="text-lg font-semibold mb-4">Letterhead (Optional)</h2>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Upload Letterhead Image</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLetterheadChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-                {letterheadFile && (
-                  <div className="flex gap-3 items-center">
-                    <span className="text-sm text-gray-600">{letterheadFile.name}</span>
-                    <Button variant="primary" onClick={handleLetterheadUpload} disabled={uploadingLetterhead}>
-                      {uploadingLetterhead ? 'Uploading...' : 'Upload Letterhead'}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
 
-            {/* Key Job Details */}
-            <div className="border-b pb-4">
-              <h2 className="text-lg font-semibold mb-4">Key Job Details</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Role / Position Title</label>
+            {/* Section: Core Details */}
+            <div className={sectionClass}>
+              <h2 className={sectionTitle}>Job Details</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
                   <Input
-                    name="role"
-                    value={form.role}
-                    onChange={handleChange}
-                    placeholder="e.g., Toll Attendant"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Display Title</label>
-                  <Input
+                    label="Job Title"
                     name="title"
                     value={form.title}
                     onChange={handleChange}
-                    placeholder="e.g., Nairobi Expressway Hiring Toll Attendants"
+                    placeholder="e.g., Senior Toll Attendant"
                     required
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                  <select
-                    name="department"
-                    value={form.department}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    required
-                  >
-                    <option value="">Select Department</option>
+                  <label className={labelClass}>Department</label>
+                  <select name="department" value={form.department} onChange={handleChange} className={selectClass} required>
+                    <option value="">Select department...</option>
                     {departments.map(dept => (
                       <option key={dept} value={dept}>{dept}</option>
                     ))}
                   </select>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                   <Input
+                    label="Location"
                     name="location"
                     value={form.location}
                     onChange={handleChange}
@@ -244,47 +170,39 @@ const CreateJobAdvertisement = () => {
                     required
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Employment Type</label>
-                  <select
-                    name="employmentType"
-                    value={form.employmentType}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    required
-                  >
+                  <label className={labelClass}>Employment Type</label>
+                  <select name="employmentType" value={form.employmentType} onChange={handleChange} className={selectClass} required>
+                    <option value="">Select type...</option>
                     {employmentTypes.map(type => (
                       <option key={type} value={type}>{type}</option>
                     ))}
                   </select>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Vacancies</label>
-                  <Input
-                    name="vacancies"
-                    type="number"
-                    value={form.vacancies}
-                    onChange={handleChange}
-                    min="1"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                  <select
-                    name="gender"
-                    value={form.gender}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="Equal Opportunity">Equal Opportunity</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
+                  <label className={labelClass}>Status</label>
+                  <select name="status" value={form.status} onChange={handleChange} className={selectClass} required>
+                    {jobStatuses.map(s => (
+                      <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                    ))}
                   </select>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Application Deadline</label>
                   <Input
+                    label="Salary Range"
+                    name="salaryRange"
+                    value={form.salaryRange}
+                    onChange={handleChange}
+                    placeholder="e.g., KES 25,000 – 35,000 / month"
+                  />
+                </div>
+
+                <div>
+                  <Input
+                    label="Application Deadline"
                     name="applicationDeadline"
                     type="date"
                     value={form.applicationDeadline}
@@ -292,111 +210,121 @@ const CreateJobAdvertisement = () => {
                     required
                   />
                 </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Salary Range</label>
-                  <Input
-                    name="salaryRange"
-                    value={form.salaryRange}
-                    onChange={handleChange}
-                    placeholder="e.g., KES 25,000 - 30,000 per month"
-                  />
-                </div>
               </div>
             </div>
 
-            {/* Introduction */}
-            <div className="border-b pb-4">
-              <h2 className="text-lg font-semibold mb-4">Introduction</h2>
+            {/* Section: Description */}
+            <div className={sectionClass}>
+              <h2 className={sectionTitle}>Job Description</h2>
               <textarea
-                name="introduction"
-                value={form.introduction}
+                name="description"
+                value={form.description}
                 onChange={handleChange}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                placeholder="Provide an overview of the role and what the organization does..."
+                className={textareaClass}
+                placeholder="Provide an overview of the role and what the organisation does..."
                 required
               />
             </div>
 
-            {/* Responsibilities */}
-            <div className="border-b pb-4">
-              <h2 className="text-lg font-semibold mb-4">Your Responsibilities</h2>
+            {/* Section: Responsibilities */}
+            <div className={sectionClass}>
+              <h2 className={sectionTitle}>Responsibilities</h2>
               <textarea
                 name="responsibilities"
                 value={form.responsibilities}
                 onChange={handleChange}
-                rows={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                placeholder="List the key responsibilities (one per line or numbered)..."
+                rows={5}
+                className={textareaClass}
+                placeholder="List key responsibilities, one per line..."
                 required
               />
             </div>
 
-            {/* Required Skills */}
-            <div className="border-b pb-4">
-              <h2 className="text-lg font-semibold mb-4">Required Skills and Experience</h2>
+            {/* Section: Requirements */}
+            <div className={sectionClass}>
+              <h2 className={sectionTitle}>Requirements & Skills</h2>
               <textarea
-                name="requiredSkills"
-                value={form.requiredSkills}
+                name="requirements"
+                value={form.requirements}
                 onChange={handleChange}
-                rows={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                placeholder="List the required skills, experience, qualifications (one per line or numbered)..."
+                rows={5}
+                className={textareaClass}
+                placeholder="List required skills and experience, one per line..."
                 required
               />
             </div>
 
-            {/* Additional Details */}
-            <div className="border-b pb-4">
-              <h2 className="text-lg font-semibold mb-4">Additional Details</h2>
+            {/* Section: Qualifications & Benefits */}
+            <div className={sectionClass}>
+              <h2 className={sectionTitle}>Qualifications & Benefits</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Qualifications</label>
+                  <label className={labelClass}>Minimum Qualifications</label>
                   <textarea
                     name="qualifications"
                     value={form.qualifications}
                     onChange={handleChange}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    placeholder="Minimum educational requirements..."
+                    className={textareaClass}
+                    placeholder="e.g., Diploma in Business Administration, KCSE C Plain..."
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Benefits</label>
+                  <label className={labelClass}>Benefits Offered</label>
                   <textarea
                     name="benefits"
                     value={form.benefits}
                     onChange={handleChange}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    placeholder="List benefits offered..."
+                    className={textareaClass}
+                    placeholder="e.g., Medical cover, pension scheme, transport allowance..."
                   />
                 </div>
               </div>
             </div>
 
+            {/* Section: Letterhead */}
+            <div className={sectionClass}>
+              <h2 className={sectionTitle}>Letterhead (Optional)</h2>
+              <div className="space-y-3">
+                <div>
+                  <label className={labelClass}>Upload Letterhead Image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLetterheadChange}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm"
+                  />
+                </div>
+                {letterheadFile && (
+                  <div className="flex gap-3 items-center">
+                    <span className="text-sm text-slate-600 dark:text-slate-400">{letterheadFile.name}</span>
+                    <Button type="button" variant="outline" onClick={handleLetterheadUpload} disabled={uploadingLetterhead}>
+                      {uploadingLetterhead ? 'Uploading...' : 'Upload'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Generated Files */}
-            {generatedFiles.pdf && generatedFiles.jpeg && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-                <h3 className="font-semibold text-emerald-900 mb-3">Advertisement Generated Successfully</h3>
-                <p className="text-sm text-emerald-700 mb-3">Download the advertisement files for marketing channels:</p>
-                <div className="flex gap-3">
-                  <Button variant="primary" onClick={downloadPDF}>
-                    Download PDF
-                  </Button>
-                  <Button variant="outline" onClick={downloadJPEG}>
-                    Download JPEG
-                  </Button>
+            {(generatedFiles.pdf || generatedFiles.jpeg) && (
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-lg p-4">
+                <h3 className="font-semibold text-emerald-900 dark:text-emerald-300 mb-2">Advertisement Generated</h3>
+                <div className="flex gap-3 mt-2">
+                  {generatedFiles.pdf && <Button type="button" variant="primary" onClick={() => window.open(generatedFiles.pdf, '_blank')}>Download PDF</Button>}
+                  {generatedFiles.jpeg && <Button type="button" variant="outline" onClick={() => window.open(generatedFiles.jpeg, '_blank')}>Download JPEG</Button>}
                 </div>
               </div>
             )}
 
-            {/* Submit */}
-            <div className="flex gap-3">
+            {/* Actions */}
+            <div className="flex gap-3 pt-2">
               <Button variant="primary" type="submit" disabled={loading}>
-                {loading ? 'Creating...' : 'Create Job & Generate Advertisement'}
+                {loading ? 'Creating...' : 'Create Job Posting'}
               </Button>
-              <Button variant="outline" onClick={() => navigate('/recruitment/jobs')}>
+              <Button variant="outline" type="button" onClick={() => navigate('/recruitment/jobs')}>
                 Cancel
               </Button>
             </div>

@@ -7,7 +7,7 @@ import Button from '../../components/common/Button'
 import Table from '../../components/common/Table'
 import Input from '../../components/common/Input'
 import Modal from '../../components/common/Modal'
-import { employeeAPI } from '../../services/api'
+import { employeeAPI, userAPI } from '../../services/api'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSettings } from '../../contexts/SettingsContext'
 import { toast } from 'react-toastify'
@@ -23,6 +23,10 @@ const Employees = () => {
   const [search, setSearch] = useState('')
   const [departmentFilter, setDepartmentFilter] = useState('all')
   const [employmentTypeFilter, setEmploymentTypeFilter] = useState('all')
+  const [roleFilter, setRoleFilter] = useState('all')
+  const [changingRoleFor, setChangingRoleFor] = useState(null)
+  const [newRole, setNewRole] = useState('employee')
+  const [users, setUsers] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState(null)
   const [departments, setDepartments] = useState([])
@@ -43,9 +47,35 @@ const Employees = () => {
 
   useEffect(() => {
     fetchEmployees()
+    fetchUsers()
     setDepartments(getDepartments() || [])
     setEmploymentTypes(getEmploymentTypes() || [])
   }, [])
+
+  const fetchUsers = async () => {
+    try {
+      const res = await userAPI.getAll()
+      setUsers(res.data || [])
+    } catch {}
+  }
+
+  const handleRoleChange = async () => {
+    if (!changingRoleFor) return
+    try {
+      await userAPI.assignRole(changingRoleFor.userId, newRole)
+      toast.success(`Role updated to ${newRole}`)
+      setChangingRoleFor(null)
+      fetchUsers()
+    } catch {
+      toast.error('Failed to update role')
+    }
+  }
+
+  const getUserForEmployee = (emp) => {
+    return users.find(u =>
+      u.email && emp.email && u.email.toLowerCase() === emp.email.toLowerCase()
+    )
+  }
 
   const fetchEmployees = async () => {
     try {
@@ -161,8 +191,10 @@ const Employees = () => {
 
     const matchesDepartment = departmentFilter === 'all' || (emp.department || '') === departmentFilter
     const matchesEmploymentType = employmentTypeFilter === 'all' || (emp.employmentType || '') === employmentTypeFilter
+    const linkedUser = getUserForEmployee(emp)
+    const matchesRole = roleFilter === 'all' || (linkedUser?.role || '').toLowerCase() === roleFilter
 
-    return matchesSearch && matchesDepartment && matchesEmploymentType
+    return matchesSearch && matchesDepartment && matchesEmploymentType && matchesRole
   })
 
   const handleExportEmployeesReport = async () => {
@@ -194,6 +226,30 @@ const Employees = () => {
     { key: 'phone', label: 'Phone' },
     { key: 'department', label: 'Department' },
     { key: 'employmentType', label: 'Type' },
+    {
+      key: 'role',
+      label: 'Role',
+      render: (_, row) => {
+        const linkedUser = getUserForEmployee(row)
+        if (!linkedUser) return <span className="text-slate-400 text-xs">No account</span>
+        return (
+          <div className="flex items-center gap-2">
+            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+              linkedUser.role === 'admin' ? 'bg-red-100 text-red-700' :
+              linkedUser.role === 'manager' ? 'bg-blue-100 text-blue-700' :
+              linkedUser.role === 'supervisor' ? 'bg-purple-100 text-purple-700' :
+              'bg-slate-100 text-slate-600'
+            }`}>{linkedUser.role}</span>
+            {canManageEmployees && (
+              <button
+                className="text-xs text-blue-500 hover:underline"
+                onClick={() => { setChangingRoleFor({ userId: linkedUser._id || linkedUser.id, username: linkedUser.username }); setNewRole(linkedUser.role) }}
+              >change</button>
+            )}
+          </div>
+        )
+      }
+    },
     {
       key: 'id',
       label: 'Actions',
@@ -254,6 +310,16 @@ const Employees = () => {
               {employmentTypeOptions.map((empType) => (
                 <option key={empType} value={empType}>{empType}</option>
               ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1 min-w-[150px]">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Role</label>
+            <select className="form-select" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+              <option value="all">All roles</option>
+              <option value="employee">Employee</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="manager">Manager</option>
+              <option value="admin">Admin</option>
             </select>
           </div>
           <Button variant="secondary" onClick={handleExportEmployeesReport}>Export Report</Button>
@@ -381,6 +447,24 @@ const Employees = () => {
           </div>
         </form>
       </Modal>
+      {changingRoleFor && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-900 rounded-lg p-6 w-full max-w-sm shadow-xl">
+            <h3 className="text-lg font-bold mb-1">Change Role</h3>
+            <p className="text-sm text-slate-500 mb-4">User: <strong>{changingRoleFor.username}</strong></p>
+            <select value={newRole} onChange={(e) => setNewRole(e.target.value)} className="form-select w-full mb-4">
+              <option value="employee">Employee</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="manager">Manager</option>
+              <option value="admin">Admin</option>
+            </select>
+            <div className="flex gap-2">
+              <Button variant="primary" onClick={handleRoleChange}>Save</Button>
+              <Button variant="outline" onClick={() => setChangingRoleFor(null)}>Cancel</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   )
 }

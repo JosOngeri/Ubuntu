@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import Card from '../../components/common/Card'
 import Table from '../../components/common/Table'
@@ -22,6 +22,7 @@ import {
 
 const Attendance = ({ role = 'employee' }) => {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
 
   const isEmployee = role === 'employee'
@@ -49,6 +50,7 @@ const Attendance = ({ role = 'employee' }) => {
   const [selectedEmployee, setSelectedEmployee] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [dateFilter, setDateFilter] = useState(location.state?.filterDate || '')
   const [biometricDeviceId, setBiometricDeviceId] = useState(localStorage.getItem('biometricDeviceId') || 'BIO-001')
   const [employees, setEmployees] = useState([])
   const [employeeProfile, setEmployeeProfile] = useState(null)
@@ -246,14 +248,16 @@ const Attendance = ({ role = 'employee' }) => {
   const normalizedSearch = searchTerm.trim().toLowerCase()
   const filteredAttendance = attendance.filter((row) => {
     const dateText = row.attendanceDate ? new Date(row.attendanceDate).toLocaleDateString().toLowerCase() : ''
+    const rowDateStr = row.attendanceDate ? String(row.attendanceDate).slice(0, 10) : ''
     const matchesSearch =
       !normalizedSearch ||
       dateText.includes(normalizedSearch) ||
       (row.status || '').toLowerCase().includes(normalizedSearch) ||
       (row.shift || '').toLowerCase().includes(normalizedSearch)
     const matchesStatus = statusFilter === 'all' || (row.status || '').toLowerCase() === statusFilter
+    const matchesDate = !dateFilter || rowDateStr === dateFilter
 
-    return matchesSearch && matchesStatus
+    return matchesSearch && matchesStatus && matchesDate
   })
 
   const handleExportAttendanceReport = async () => {
@@ -424,6 +428,13 @@ const Attendance = ({ role = 'employee' }) => {
               <option value="leave">Leave</option>
             </select>
           </div>
+          <div className="flex flex-col gap-1 min-w-[180px]">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Date</label>
+            <input type="date" className="form-select" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
+          </div>
+          {dateFilter && (
+            <button className="text-xs text-blue-500 underline mt-4" onClick={() => setDateFilter('')}>Clear date</button>
+          )}
           <Button type="button" variant="outline" onClick={handleExportAttendanceReport}>Export Report</Button>
         </div>
         <Table columns={columns} data={filteredAttendance} loading={loading} />

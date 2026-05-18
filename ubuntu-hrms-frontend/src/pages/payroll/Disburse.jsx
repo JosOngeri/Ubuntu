@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import DashboardLayout from '../../components/DashboardLayout'
 import api, { payrollAPI } from '../../services/api'
@@ -8,7 +9,8 @@ import { downloadPdfReport } from '../../utils/reportExport'
 const formatMoney = (value) => new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(Number(value || 0))
 
 export default function PayrollDisburse() {
-  const [activeTab, setActiveTab] = useState('disbursements')
+  const location = useLocation()
+  const [activeTab, setActiveTab] = useState(location.state?.filterStatus === 'Draft' ? 'pending' : 'disbursements')
   const [payslips, setPayslips] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)

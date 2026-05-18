@@ -76,47 +76,59 @@ const AdminDashboard = () => {
       </div>
 
       <div className="grid-4">
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => navigate('/admin/employees')}>
+        <Card className="cursor-pointer hover:scale-[1.02] hover:shadow-xl transition-all duration-200 !bg-gradient-to-br from-blue-500 to-blue-700 text-white border-0" onClick={() => navigate('/admin/employees')}>
           <div className="stat-card">
-            <div className="stat-icon">
-              <BsPeople size={28} />
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-3 bg-white/20 rounded-xl">
+                <BsPeople size={26} className="text-white" />
+              </div>
+              <span className="text-blue-100 text-xs font-medium bg-white/20 px-2 py-1 rounded-full">↑ 5%</span>
             </div>
-            <span className="stat-label">Total Employees</span>
-            <span className="stat-value">{stats.totalEmployees}</span>
-            <span className="stat-change">↑ 5% from last month</span>
+            <span className="text-blue-100 text-sm font-medium">Total Employees</span>
+            <div className="text-3xl font-bold text-white mt-1">{stats.totalEmployees}</div>
+            <span className="text-blue-200 text-xs mt-1">from last month</span>
           </div>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => navigate('/admin/attendance')}>
+        <Card className="cursor-pointer hover:scale-[1.02] hover:shadow-xl transition-all duration-200 !bg-gradient-to-br from-emerald-500 to-emerald-700 text-white border-0" onClick={() => navigate('/admin/attendance', { state: { filterDate: new Date().toISOString().split('T')[0] } })}>
           <div className="stat-card">
-            <div className="stat-icon present">
-              <BsClipboardCheck size={28} />
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-3 bg-white/20 rounded-xl">
+                <BsClipboardCheck size={26} className="text-white" />
+              </div>
+              <span className="text-emerald-100 text-xs font-medium bg-white/20 px-2 py-1 rounded-full">90%</span>
             </div>
-            <span className="stat-label">Present Today</span>
-            <span className="stat-value">{stats.presentToday}</span>
-            <span className="stat-change">90% attendance rate</span>
+            <span className="text-emerald-100 text-sm font-medium">Present Today</span>
+            <div className="text-3xl font-bold text-white mt-1">{stats.presentToday}</div>
+            <span className="text-emerald-200 text-xs mt-1">attendance rate</span>
           </div>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => navigate('/admin/payroll')}>
+        <Card className="cursor-pointer hover:scale-[1.02] hover:shadow-xl transition-all duration-200 !bg-gradient-to-br from-amber-500 to-orange-600 text-white border-0" onClick={() => navigate('/admin/payroll', { state: { filterStatus: 'Draft' } })}>
           <div className="stat-card">
-            <div className="stat-icon pending">
-              <BsCreditCard size={28} />
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-3 bg-white/20 rounded-xl">
+                <BsCreditCard size={26} className="text-white" />
+              </div>
+              <span className="text-amber-100 text-xs font-medium bg-white/20 px-2 py-1 rounded-full">Pending</span>
             </div>
-            <span className="stat-label">Pending Payroll</span>
-            <span className="stat-value">{stats.pendingPayroll}</span>
-            <span className="stat-change">Process by end of month</span>
+            <span className="text-amber-100 text-sm font-medium">Pending Payroll</span>
+            <div className="text-3xl font-bold text-white mt-1">{stats.pendingPayroll}</div>
+            <span className="text-amber-200 text-xs mt-1">process by end of month</span>
           </div>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => navigate('/admin/kpi')}>
+        <Card className="cursor-pointer hover:scale-[1.02] hover:shadow-xl transition-all duration-200 !bg-gradient-to-br from-violet-500 to-purple-700 text-white border-0" onClick={() => navigate('/admin/kpis')}>
           <div className="stat-card">
-            <div className="stat-icon success">
-              <BsGraphUp size={28} />
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-3 bg-white/20 rounded-xl">
+                <BsGraphUp size={26} className="text-white" />
+              </div>
+              <span className="text-violet-100 text-xs font-medium bg-white/20 px-2 py-1 rounded-full">On track</span>
             </div>
-            <span className="stat-label">Avg KPI Score</span>
-            <span className="stat-value">{stats.avgKPI}%</span>
-            <span className="stat-change">On track</span>
+            <span className="text-violet-100 text-sm font-medium">Avg KPI Score</span>
+            <div className="text-3xl font-bold text-white mt-1">{stats.avgKPI}%</div>
+            <span className="text-violet-200 text-xs mt-1">overall performance</span>
           </div>
         </Card>
       </div>

@@ -62,7 +62,6 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         items: [
           { path: '/admin/users', label: 'Users', icon: BsPersonCircle },
           { path: '/admin/employees', label: 'Employees', icon: BsPeople },
-          { path: '/admin/permissions', label: 'Permissions', icon: BsGear },
           { path: '/admin/settings', label: 'Settings', icon: BsGear },
         ]
       },
