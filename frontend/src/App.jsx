@@ -1,0 +1,598 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+// Recruitment Pages
+import JobPostingManagement from './pages/recruitment/JobPostingManagement';
+import Landing from './pages/recruitment/Landing';
+import PublicJobBoard from './pages/recruitment/PublicJobBoard';
+import JobApplicationForm from './pages/recruitment/JobApplicationForm';
+import ApplicantReviewDashboard from './pages/recruitment/ApplicantReviewDashboard';
+import MyApplications from './pages/recruitment/MyApplications';
+import ProfileUpdateForm from './pages/recruitment/ProfileUpdateForm';
+import ProfileView from './pages/recruitment/ProfileView';
+import ProfileIndex from './pages/profile/index';
+import Settings from './pages/settings/index';
+import ApplicantDetail from './pages/recruitment/ApplicantDetail';
+import JobDetail from './pages/recruitment/JobDetail';
+import CreateJobAdvertisement from './pages/recruitment/CreateJobAdvertisement';
+import OnboardingPage from './pages/onboarding/index';
+import DailyLabourPage from './pages/dailyLabour/index';
+import ComplaintsPage from './pages/complaints/index';
+import AssetsPage from './pages/assets/index';
+import ContractorsPage from './pages/contractors/index';
+import ReportsPage from './pages/reports/index';
+
+// Auth Pages
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
+import Unauthorized from './pages/Unauthorized';
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Admin Pages
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminEmployees from './pages/admin/Employees';
+import AdminUsers from './pages/admin/Users';
+import Permissions from './pages/admin/Permissions';
+import AdminSettings from './pages/admin/Settings';
+import UserDetail from './pages/admin/UserDetail';
+import EmployeeDetail from './pages/admin/EmployeeDetail';
+
+// Manager & Employee Pages
+import ManagerDashboard from './pages/manager/Dashboard';
+import ManagerLeaves from './pages/manager/Leaves';
+import EmployeeDashboard from './pages/employee/Dashboard';
+import EmployeeLeaves from './pages/employee/Leaves';
+import LeaveRequest from './pages/leave/Request';
+import LeaveApprovals from './pages/leave/Approvals';
+import LeaveStatutory from './pages/leave/Statutory';
+import Punch from './pages/employee/Punch';
+import AttendancePage from './pages/shared/Attendance';
+import AttendanceDetail from './pages/shared/AttendanceDetail';
+
+// Payroll Pages
+import PayrollDisburse from './pages/payroll/Disburse';
+import EmployeePayslips from './pages/payroll/Payslips';
+
+// KPI Pages
+import KpiManage from './pages/kpi/Manage';
+import KpiAssessment from './pages/kpi/Assesment';
+import MyGoals from './pages/kpi/MyGoals';
+
+// Contractor Pages
+import ContractorDashboard from './pages/contractor/Dashboard';
+import ContractorProjects from './pages/contractor/Projects';
+import ContractorInvoices from './pages/contractor/Invoices';
+import ContractorPortal from './pages/contractor/Portal';
+
+// Contract Review
+import ContractReview from './pages/contracts/Review';
+
+// Admin Pages
+import AdminKPI from './pages/admin/KPI';
+import AdminLeave from './pages/admin/Leave';
+import AdminPayroll from './pages/admin/Payroll';
+import AdminContract from './pages/admin/Contract';
+
+// Wrappers for dynamic routes
+function JobApplicationFormWrapper() {
+  const { jobId } = useParams();
+  return <JobApplicationForm jobId={jobId} />;
+}
+
+function ApplicantReviewDashboardWrapper() {
+  const { jobId } = useParams();
+  return <ApplicantReviewDashboard jobId={jobId} />;
+}
+
+function ApplicantDetailWrapper() {
+  const { jobId, applicantId } = useParams();
+  return <ApplicantDetail jobId={jobId} applicantId={applicantId} />;
+}
+
+function DashboardRedirect() {
+  const { user, loading } = useAuth()
+  if (loading) return <div className="loading-screen">Loading...</div>
+  if (!user) return <Navigate to="/" replace />
+
+  if (user.role === 'admin' || user.role === 'hr') return <Navigate to="/admin/dashboard" replace />
+  if (user.role === 'manager' || user.role === 'supervisor') return <Navigate to="/manager/dashboard" replace />
+  if (user.role === 'contractor') return <Navigate to="/contractor/dashboard" replace />
+  return <Navigate to="/employee/dashboard" replace />
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
+
+            {/* Admin Routes */}
+            <Route
+              path="/admin/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/employees"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminEmployees />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/employees/:employeeId"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <EmployeeDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminUsers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users/:userId"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <UserDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/permissions"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <Permissions />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/settings"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/attendance"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AttendancePage role="admin" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/attendance/:attendanceId"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AttendanceDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/kpis"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminKPI />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/leaves"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminLeave />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/payroll"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <PayrollDisburse />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/contracts"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminContract />
+                </ProtectedRoute>
+              }
+            />
+
+
+            <Route
+              path="/admin/onboarding"
+              element={
+                <ProtectedRoute allowedRoles={['admin','manager','hr']}>
+                  <OnboardingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/daily-labour"
+              element={
+                <ProtectedRoute allowedRoles={['admin','manager']}>
+                  <DailyLabourPage />
+                </ProtectedRoute>
+              }
+            />
+                    <Route
+              path="/admin/complaints"
+              element={
+                <ProtectedRoute allowedRoles={['admin','manager']}>
+                  <ComplaintsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/assets"
+              element={
+                <ProtectedRoute allowedRoles={['admin','manager']}>
+                  <AssetsPage />
+                </ProtectedRoute>
+              }
+            />
+                       <Route
+              path="/admin/contractors"
+              element={
+                <ProtectedRoute allowedRoles={['admin','manager']}>
+                  <ContractorsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/reports"
+              element={
+                <ProtectedRoute allowedRoles={['admin','manager']}>
+                  <ReportsPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Manager Routes */}
+            <Route
+              path="/manager/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['manager', 'supervisor']}>
+                  <ManagerDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/manager/attendance"
+              element={
+                <ProtectedRoute allowedRoles={['manager', 'supervisor']}>
+                  <AttendancePage role="manager" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/manager/attendance/:attendanceId"
+              element={
+                <ProtectedRoute allowedRoles={['manager', 'supervisor']}>
+                  <AttendanceDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/manager/leaves"
+              element={
+                <ProtectedRoute allowedRoles={['manager', 'supervisor']}>
+                  <ManagerLeaves />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/leave/request"
+              element={
+                <ProtectedRoute allowedRoles={['employee']}>
+                  <LeaveRequest />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/leave/approvals"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
+                  <LeaveApprovals />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/leave/statutory"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                  <LeaveStatutory />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Employee Routes */}
+            <Route
+              path="/employee/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['employee']}>
+                  <EmployeeDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employee/leaves"
+              element={
+                <ProtectedRoute allowedRoles={['employee']}>
+                  <EmployeeLeaves />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payroll/payslips"
+              element={
+                <ProtectedRoute allowedRoles={['employee']}>
+                  <EmployeePayslips />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employee/attendance"
+              element={
+                <ProtectedRoute allowedRoles={['employee']}>
+                  <AttendancePage role="employee" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employee/punch"
+              element={
+                <ProtectedRoute allowedRoles={['employee']}>
+                  <Punch />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employee/attendance/:attendanceId"
+              element={
+                <ProtectedRoute allowedRoles={['employee']}>
+                  <AttendanceDetail />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Contractor Routes */}
+            <Route
+              path="/contractor/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['contractor']}>
+                  <ContractorDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contractor/projects"
+              element={
+                <ProtectedRoute allowedRoles={['contractor']}>
+                  <ContractorProjects />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contractor/invoices"
+              element={
+                <ProtectedRoute allowedRoles={['contractor']}>
+                  <ContractorInvoices />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contractor/portal"
+              element={
+                <ProtectedRoute allowedRoles={['contractor']}>
+                  <ContractorPortal />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/payroll/disburse"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                  <PayrollDisburse />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/kpi/manage"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
+                  <KpiManage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/kpi/assesment"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor']}>
+                  <KpiAssessment />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/kpi/my-goals"
+              element={
+                <ProtectedRoute allowedRoles={['employee']}>
+                  <MyGoals />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/contracts/review"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                  <ContractReview />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Recruitment Portal Routes */}
+            <Route
+              path="/recruitment/jobs"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'hr']}>
+                  <JobPostingManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/recruitment/jobs/:jobId"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'hr']}>
+                  <JobDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/recruitment/create-advertisement"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'hr']}>
+                  <CreateJobAdvertisement />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/recruitment/jobs-board" element={<PublicJobBoard />} />
+            <Route path="/recruitment/apply/:jobId" element={<JobApplicationFormWrapper />} />
+            <Route
+              path="/recruitment/my-applications"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'hr', 'employee', 'supervisor']}>
+                  <MyApplications />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/recruitment/jobs/:jobId/applicants"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'hr']}>
+                  <ApplicantReviewDashboardWrapper />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/recruitment/jobs/:jobId/applicants/:applicantId"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'hr']}>
+                  <ApplicantDetailWrapper />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/view"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'hr', 'employee', 'contractor']}>
+                  <ProfileView />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/update"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'hr', 'employee', 'contractor']}>
+                  <ProfileUpdateForm />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor', 'employee', 'contractor', 'hr']}>
+                  <DashboardRedirect />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Profile Routes */}
+            <Route
+              path="/profile/view"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor', 'employee', 'contractor', 'hr']}>
+                  <ProfileView />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/update"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor', 'employee', 'contractor', 'hr']}>
+                  <ProfileUpdateForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor', 'employee', 'contractor', 'hr']}>
+                  <ProfileIndex />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Settings Route */}
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'supervisor', 'employee', 'contractor', 'hr']}>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Root redirect — landing page with Job Opportunities button */}
+            <Route path="/" element={<Landing />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={true}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+          />
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}
+
+export default App;
