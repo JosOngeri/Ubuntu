@@ -18,7 +18,7 @@ const ResetPassword = () => {
   const [resetSuccess, setResetSuccess] = useState(false)
   const [tokenValid, setTokenValid] = useState(false)
   const [tokenError, setTokenError] = useState('')
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://75.119.139.249'
 
   useEffect(() => {
     const resetToken = searchParams.get('token')

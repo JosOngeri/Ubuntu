@@ -4,7 +4,7 @@ import api from '../services/api'
 
 const AuthContext = createContext()
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://75.119.139.249'
 
 const normalizeProfileName = (raw = {}) => {
   const full = raw.fullName ?? raw.fullname

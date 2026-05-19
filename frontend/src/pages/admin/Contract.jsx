@@ -458,7 +458,7 @@ export default function Contract() {
             {selectedContract.documentPath && (
               <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
                 <strong className="text-slate-600 dark:text-slate-400">Attached Document:</strong>
-                <a href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${selectedContract.documentPath.startsWith('/') ? '' : '/'}${selectedContract.documentPath}`} target="_blank" rel="noopener noreferrer" className="block mt-2 text-sm text-primary hover:underline">
+                <a href={`${import.meta.env.VITE_API_URL || 'http://75.119.139.249'}${selectedContract.documentPath.startsWith('/') ? '' : '/'}${selectedContract.documentPath}`} target="_blank" rel="noopener noreferrer" className="block mt-2 text-sm text-primary hover:underline">
                   📄 View Contract Document
                 </a>
               </div>

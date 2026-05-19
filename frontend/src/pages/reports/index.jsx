@@ -62,7 +62,7 @@ export default function ReportsPage() {
       if (dept !== 'all') params.department = dept
       params.type = type
 
-      const url = new URL(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/reports/pdf`)
+      const url = new URL(`${import.meta.env.VITE_API_URL || 'http://75.119.139.249'}/api/reports/pdf`)
       Object.keys(params).forEach(key => url.searchParams.append(key, params[key]))
 
       window.open(url.toString(), '_blank')

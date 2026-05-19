@@ -30,7 +30,7 @@ npm install
 cp .env.example .env.local
 
 # Edit .env.local (optional if backend is on localhost:5000)
-# REACT_APP_API_URL=http://localhost:5000
+# REACT_APP_API_URL=http://75.119.139.249
 ```
 
 ## 3. Start Backend (if not already running)
@@ -40,7 +40,7 @@ In a separate terminal:
 cd ubuntu-hrms-backend
 npm install
 npm start
-# Should output: Server running on http://localhost:5000
+# Should output: Server running on http://75.119.139.249
 ```
 
 ## 4. Start Frontend (1 minute)
@@ -129,7 +129,7 @@ code .
 ## Troubleshooting
 
 ### Can't login?
-1. Ensure backend is running: `http://localhost:5000`
+1. Ensure backend is running: `http://75.119.139.249`
 2. Check credentials are correct (copy-paste from above)
 3. Open browser console (F12) for error details
 
@@ -145,7 +145,7 @@ pnpm dev -- --port 3000
 ### API connection error?
 ```bash
 # Test backend connection
-curl http://localhost:5000/api/employees
+curl http://75.119.139.249/api/employees
 
 # If error, ensure backend is running
 cd ../ubuntu-hrms-backend

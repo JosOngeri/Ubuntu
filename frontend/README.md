@@ -98,7 +98,7 @@ src/
 ### Prerequisites
 - Node.js 16+ 
 - npm or pnpm
-- Backend API running (http://localhost:5000 by default)
+- Backend API running (http://75.119.139.249 by default)
 
 ### Installation Steps
 
@@ -122,7 +122,7 @@ src/
    
    Edit `.env.local` with your API URL:
    ```
-   REACT_APP_API_URL=http://localhost:5000
+   REACT_APP_API_URL=http://75.119.139.249
    ```
 
 4. **Start development server**
@@ -248,7 +248,7 @@ pnpm install
 ```
 
 ### API connection issues
-- Verify backend is running on `http://localhost:5000`
+- Verify backend is running on `http://75.119.139.249`
 - Check `.env.local` has correct `REACT_APP_API_URL`
 - Check browser console for CORS errors
 
