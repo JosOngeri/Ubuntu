@@ -110,7 +110,7 @@ exports.updateProgress = async (req, res) => {
 
 exports.verifyMilestone = async (req, res) => {
   try {
-    const { timeliness, budgetAdherence, quality, approved } = req.body;
+    const { timeliness, budgetAdherence, quality, approved, notes } = req.body;
     const milestone = await Milestone.findById(req.params.id);
     if (!milestone) return res.status(404).json({ msg: 'Milestone not found' });
     if (approved) {
@@ -119,12 +119,47 @@ exports.verifyMilestone = async (req, res) => {
       milestone.status = 'verified';
       milestone.verifiedBy = req.user.id;
       milestone.verifiedAt = new Date();
+      if (notes) milestone.notes = notes;
     } else {
       milestone.status = 'rejected';
     }
     await milestone.save();
 
     if (approved) {
+      // Auto-generate draft invoice from milestone budget
+      if (milestone.budget > 0 && milestone.contractorId) {
+        try {
+          const { pool } = require('../config/db');
+          const invoiceNumber = `INV-MS-${milestone._id.toString().slice(-6).toUpperCase()}`;
+          await pool.query(
+            `INSERT INTO invoices (contractor_id, amount, status, due_date, description)
+             VALUES ($1, $2, 'Draft', NOW() + INTERVAL '30 days', $3)
+             ON CONFLICT DO NOTHING`,
+            [milestone.contractorId, milestone.budget, `Auto-generated from milestone: ${milestone.title || milestone.description || ''}`]
+          );
+        } catch (invoiceErr) {
+          console.log('Auto-invoice generation skipped:', invoiceErr.message);
+        }
+      }
+
+      // Update contractor_performance delivery_rate
+      const allVerified = await Milestone.find({ contractorId: milestone.contractorId, status: { $in: ['verified', 'paid'] } });
+      if (allVerified.length > 0) {
+        const avgScore = Math.round(allVerified.reduce((s, m) => s + (m.kpiScore?.overall || 0), 0) / allVerified.length);
+        try {
+          const { pool } = require('../config/db');
+          await pool.query(
+            `INSERT INTO contractor_performance (contractor_id, delivery_rate)
+             VALUES ($1, $2)
+             ON CONFLICT (contractor_id) DO UPDATE SET delivery_rate = $2`,
+            [milestone.contractorId, avgScore]
+          );
+        } catch (perfErr) {
+          console.log('Contractor performance update skipped:', perfErr.message);
+        }
+      }
+
+      // Update employee KPI record
       const allMs = await Milestone.find({ quoteId: milestone.quoteId });
       const allDone = allMs.every(m => m.status === 'verified' || m.status === 'paid');
       if (allDone && allMs.length > 0) {

@@ -1,6 +1,9 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { BsBuilding, BsGeoAlt, BsHeart, BsPeople, BsBriefcase } from 'react-icons/bs'
+import ubuntuLogo from '../../assets/logo.png'
+import beforeImage from '../../assets/before.jpeg'
+import afterImage from '../../assets/after.jpeg'
 
 export default function Landing() {
   console.log('Landing component rendering')
@@ -8,19 +11,21 @@ export default function Landing() {
     return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-[#CB7246] via-[#F27C12] to-[#CB7246] text-white">
-        <div className="max-w-6xl mx-auto px-6 py-32 text-center">
+      <div className="relative text-white">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#CB7246]/90 via-[#F27C12]/90 to-[#CB7246]/90"></div>
+        <div className="relative z-10 max-w-6xl mx-auto px-6 py-32">
           <div className="absolute top-4 right-6">
             <Link to="/login" className="text-white/90 hover:text-white text-sm font-medium px-4 py-2 border border-white/30 rounded-lg hover:bg-white/20 transition">Staff Login</Link>
           </div>
-          <h1 className="text-6xl font-bold mb-4 tracking-tight font-serif">Ubuntu Eco Lodge</h1>
-          <p className="text-2xl text-white/90 max-w-2xl mx-auto mb-8 italic">"I am because we are."</p>
-          <Link 
-            to="/recruitment/jobs-board" 
-            className="inline-block px-8 py-4 bg-white text-[#CB7246] rounded-full font-bold text-lg hover:bg-orange-100 transition shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-          >
-            Job Opportunities
-          </Link>
+          <div className="flex items-center justify-center space-x-12">
+            <div className="bg-white rounded-2xl p-8 shadow-xl">
+              <img src={ubuntuLogo} alt="Ubuntu Eco Lodge Logo" className="h-32" />
+            </div>
+            <div className="text-center max-w-lg">
+              <h2 className="text-4xl font-bold text-white mb-2">Ubuntu Eco Lodge</h2>
+              <p className="text-2xl text-white/90">Human Resource Management System</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -45,10 +50,14 @@ export default function Landing() {
                 corporates, and individuals seeking renewal and inspiration.
               </p>
             </div>
-            <div className="bg-gradient-to-br from-orange-100 to-orange-50 rounded-2xl p-8 flex items-center justify-center">
+            <div className="grid grid-cols-2 gap-4">
               <div className="text-center">
-                <BsGeoAlt size={64} className="text-[#CB7246] mx-auto mb-4" />
-                <p className="text-slate-600 font-medium">Sustainable Living</p>
+                <img src={beforeImage} alt="Before Transformation" className="w-full h-64 object-cover rounded-lg shadow-lg" />
+                <p className="mt-2 font-semibold text-[#CB7246]">Before</p>
+              </div>
+              <div className="text-center">
+                <img src={afterImage} alt="After Transformation" className="w-full h-64 object-cover rounded-lg shadow-lg" />
+                <p className="mt-2 font-semibold text-[#CB7246]">After</p>
               </div>
             </div>
           </div>
@@ -59,7 +68,7 @@ export default function Landing() {
       <div className="py-20 bg-slate-50">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold font-serif text-[#373435] mb-4">Ubuntu Eco Lodge: A Transformational Journey</h2>
+            <h2 className="text-4xl font-bold font-serif text-[#CB7246] mb-4 italic">"I am because We are"</h2>
           </div>
           
           <div className="bg-white rounded-2xl shadow-lg p-8">
@@ -142,7 +151,7 @@ export default function Landing() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-[#2B6410] text-white">
+      <footer className="bg-[#373435] text-white">
         <div className="max-w-6xl mx-auto px-6 py-12">
           <div className="grid md:grid-cols-4 gap-8">
             <div>

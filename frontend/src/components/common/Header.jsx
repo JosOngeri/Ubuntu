@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useNavigate, Link } from 'react-router-dom'
 import { BsBoxArrowRight, BsGear, BsPersonCircle, BsChevronDown } from 'react-icons/bs'
 import ThemeToggle from './ThemeToggle'
+import headerImage from '../../assets/ubuntu-header-hrms.png'
 
 const initialsFromName = (name) => {
   if (!name || name === 'Guest') return '?'
@@ -19,6 +20,27 @@ const Header = ({ onToggleSidebar }) => {
   const avatarInitials = initialsFromName(displayName)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const profileRef = useRef(null)
+
+  const getDashboardPath = () => {
+    if (!user?.role) return '/'
+    
+    switch (user.role.toLowerCase()) {
+      case 'admin':
+        return '/admin/dashboard'
+      case 'manager':
+        return '/manager/dashboard'
+      case 'supervisor':
+        return '/supervisor/dashboard'
+      case 'hr':
+        return '/hr/dashboard'
+      case 'employee':
+        return '/employee/dashboard'
+      case 'contractor':
+        return '/contractor/dashboard'
+      default:
+        return '/dashboard'
+    }
+  }
 
   const handleLogout = () => {
     logout()
@@ -57,12 +79,14 @@ const Header = ({ onToggleSidebar }) => {
               </svg>
             </button>
           )}
-          <div className="flex items-center gap-3">
-            <img src="/ubuntu_log_transparent.png" alt="Ubuntu Kreative Village" className="h-11 w-11 object-contain" />
-            <div className="leading-tight">
-              <h1 className="text-xl font-bold text-primary dark:text-primary-light">UBUNTU HRMS</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Kreative Village</p>
-            </div>
+          <div className="flex items-center">
+            <Link to={getDashboardPath()} className="block">
+              <img
+                src={headerImage}
+                alt="Ubuntu Eco Lodge HR Management System"
+                className="h-5 sm:h-6 md:h-7 lg:h-8 xl:h-10 w-auto object-contain"
+              />
+            </Link>
           </div>
         </div>
 
@@ -79,10 +103,10 @@ const Header = ({ onToggleSidebar }) => {
                 {avatarInitials}
               </div>
               <div>
-                <p className="text-ubuntu-brown dark:text-ubuntu-cream font-medium">
+                <p className="text-xs text-ubuntu-brown dark:text-ubuntu-cream font-medium">
                   {displayName}
                 </p>
-                <p className="text-sm text-ubuntu-brown-dark dark:text-ubuntu-tan">
+                <p className="text-xs text-ubuntu-brown-dark dark:text-ubuntu-tan">
                   {user?.role || 'User'}
                 </p>
               </div>

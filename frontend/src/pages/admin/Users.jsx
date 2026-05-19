@@ -27,6 +27,11 @@ const AdminUsers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sortField, setSortField] = useState('username');
+  const [sortDirection, setSortDirection] = useState('asc');
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -99,20 +104,89 @@ const AdminUsers = () => {
     }
   };
 
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    try {
+      await api.post('/auth/admin/reset-password', { userId: selectedUser._id || selectedUser.id, newPassword });
+      toast.success('Password reset successfully');
+      setShowResetModal(false);
+      setSelectedUser(null);
+      setNewPassword('');
+    } catch (err) {
+      toast.error(err?.response?.data?.msg || 'Failed to reset password');
+    }
+  };
+
   const columns = [
-    { key: 'username', label: 'Username' },
-    { key: 'email', label: 'Email' },
-    { key: 'role', label: 'Role' },
-    { key: 'status', label: 'Status' },
+    {
+      key: 'username',
+      label: 'Username',
+      sortable: true,
+      render: (_, row) => (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            const userId = row._id || row.id || row.user_id || row.userId;
+            if (!userId) {
+              toast.error('User ID is missing from this record');
+              return;
+            }
+            navigate(`/admin/users/${userId}`);
+          }}
+          className="text-blue-500 hover:text-blue-700 hover:underline font-medium cursor-pointer"
+        >
+          {row.username}
+        </button>
+      )
+    },
+    { key: 'email', label: 'Email', sortable: true },
+    {
+      key: 'role',
+      label: 'Role',
+      sortable: true,
+      render: (_, row) => (
+        <button
+          onClick={() => setRoleFilter(row.role)}
+          className="px-2 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
+        >
+          {row.role}
+        </button>
+      )
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      render: (_, row) => (
+        <button
+          onClick={() => setStatusFilter(row.status)}
+          className={`px-2 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${row.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' : row.status === 'pending' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-200' : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200'}`}
+        >
+          {row.status}
+        </button>
+      )
+    },
     {
       key: 'actions',
       label: 'Actions',
       render: (_, row) => (
         <div className="flex gap-2 items-center">
-          <button 
+          <button
             type="button"
-            className="p-1.5 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded dark:bg-blue-900/30 dark:text-blue-400 transition" 
-            title="View Details" 
+            className="p-1.5 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded dark:bg-blue-900/30 dark:text-blue-400 transition"
+            title="View Details"
             onClick={(e) => {
               e.preventDefault();
               const userId = row._id || row.id || row.user_id || row.userId;
@@ -125,12 +199,15 @@ const AdminUsers = () => {
           >
             <BsEye size={16} />
           </button>
-          <button className="p-1.5 bg-amber-100 text-amber-600 hover:bg-amber-200 rounded dark:bg-amber-900/30 dark:text-amber-400 transition" title="Edit User" onClick={() => { 
-            setEditUser(row); 
+          <button className="p-1.5 bg-amber-100 text-amber-600 hover:bg-amber-200 rounded dark:bg-amber-900/30 dark:text-amber-400 transition" title="Edit User" onClick={() => {
+            setEditUser(row);
             setEditData({ username: row.username, email: row.email, role: row.role, status: row.status });
-            setShowEditModal(true); 
+            setShowEditModal(true);
           }}>
             <BsPencil size={16} />
+          </button>
+          <button className="p-1.5 bg-purple-100 text-purple-600 hover:bg-purple-200 rounded dark:bg-purple-900/30 dark:text-purple-400 transition" title="Reset Password" onClick={() => { setSelectedUser(row); setShowResetModal(true); }}>
+            <BsTrash size={16} />
           </button>
           {row.status !== 'active' && (
             <button className="p-1.5 bg-green-100 text-green-600 hover:bg-green-200 rounded dark:bg-green-900/30 dark:text-green-400 transition" title="Approve User" onClick={() => { setApproveUser(row); setShowApproveModal(true); }}>
@@ -155,6 +232,11 @@ const AdminUsers = () => {
     const matchesStatus = statusFilter === 'all' || (row.status || '').toLowerCase() === statusFilter;
 
     return matchesSearch && matchesRole && matchesStatus;
+  }).sort((a, b) => {
+    const aVal = a[sortField] || '';
+    const bVal = b[sortField] || '';
+    const comparison = String(aVal).localeCompare(String(bVal), undefined, { numeric: true, sensitivity: 'base' });
+    return sortDirection === 'asc' ? comparison : -comparison;
   });
 
   const handleExportUsersReport = async () => {
@@ -213,7 +295,7 @@ const AdminUsers = () => {
           </div>
           <Button type="button" variant="outline" onClick={handleExportUsersReport}>Export Report</Button>
         </div>
-        <Table columns={columns} data={filteredUsers} loading={loading} />
+        <Table columns={columns} data={filteredUsers} loading={loading} sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
       </Card>
       <Modal isOpen={showRegisterModal} onClose={() => setShowRegisterModal(false)} title="Register User">
         <form onSubmit={handleRegister} className="space-y-4">
@@ -277,6 +359,16 @@ const AdminUsers = () => {
             <Button type="button" variant="outline" onClick={() => setShowEditModal(false)}>Cancel</Button>
           </div>
         </form>
+      </Modal>
+      <Modal isOpen={showResetModal} onClose={() => setShowResetModal(false)} title="Reset User Password">
+        <div className="space-y-4">
+          <p>Reset password for <strong>{selectedUser?.username}</strong></p>
+          <Input label="New Password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
+          <div className="flex gap-2 mt-4 justify-end">
+            <Button variant="primary" onClick={handleResetPassword}>Reset Password</Button>
+            <Button variant="outline" onClick={() => { setShowResetModal(false); setSelectedUser(null); setNewPassword(''); }}>Cancel</Button>
+          </div>
+        </div>
       </Modal>
     </div>
     </DashboardLayout>

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import Card from '../../components/common/Card'
 import Button from '../../components/common/Button'
+import Modal from '../../components/common/Modal'
+import Input from '../../components/common/Input'
 import api from '../../services/api'
 import { toast } from 'react-toastify'
 import { BsFlag, BsPerson, BsBuilding, BsClock } from 'react-icons/bs'
@@ -20,6 +22,9 @@ export default function ComplaintsPage() {
   const [filter, setFilter] = useState('all')
   const [selected, setSelected] = useState(null)
   const [form, setForm] = useState({ type:'guest', category:'', description:'', urgency:'medium', guestName:'', guestRoom:'', department:'' })
+  const [showResolveModal, setShowResolveModal] = useState(false)
+  const [resolveId, setResolveId] = useState(null)
+  const [resolveForm, setResolveForm] = useState({ resolution: '', rootCause: '', prevention: '' })
 
   const fetchAll = async () => {
     setLoading(true)
@@ -37,11 +42,20 @@ export default function ComplaintsPage() {
     try { await api.put('/complaints/'+id+'/status', { status }); toast.success('Updated'); fetchAll() }
     catch { toast.error('Failed') }
   }
-  const resolve = async (id) => {
-    const r = prompt('Resolution:')
-    if (!r) return
-    try { await api.put('/complaints/'+id+'/resolve', { resolution: r }); toast.success('Resolved'); fetchAll() }
-    catch { toast.error('Failed') }
+  const openResolveModal = (id) => {
+    setResolveId(id)
+    setResolveForm({ resolution: '', rootCause: '', prevention: '' })
+    setShowResolveModal(true)
+  }
+  const resolve = async () => {
+    if (!resolveForm.resolution) { toast.error('Resolution is required'); return }
+    try {
+      await api.put('/complaints/'+resolveId+'/resolve', resolveForm)
+      toast.success('Resolved')
+      setShowResolveModal(false)
+      setResolveId(null)
+      fetchAll()
+    } catch { toast.error('Failed') }
   }
   const close = async (id) => {
     try { await api.put('/complaints/'+id+'/close'); toast.success('Closed'); fetchAll() }
@@ -58,10 +72,10 @@ export default function ComplaintsPage() {
         <p className="page-subtitle">Manage guest complaints and employee grievances with SLA tracking.</p>
       </div>
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <Card><div className="stat-card"><span className="stat-label">Total</span><span className="stat-value">{complaints.length}</span></div></Card>
-        <Card><div className="stat-card"><span className="stat-label">Open</span><span className="stat-value text-red-600">{openCount}</span></div></Card>
-        <Card><div className="stat-card"><span className="stat-label">Resolved</span><span className="stat-value text-green-600">{complaints.filter(c=>c.status==='resolved').length}</span></div></Card>
-        <Card><div className="stat-card"><span className="stat-label">Closed</span><span className="stat-value">{complaints.filter(c=>c.status==='closed').length}</span></div></Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => setFilter('all')}><div className="stat-card"><span className="stat-label">Total</span><span className="stat-value">{complaints.length}</span><p className="text-xs text-blue-500 mt-1">Click to view →</p></div></Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => setFilter('open')}><div className="stat-card"><span className="stat-label">Open</span><span className="stat-value text-red-600">{openCount}</span><p className="text-xs text-blue-500 mt-1">Click to view →</p></div></Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => setFilter('resolved')}><div className="stat-card"><span className="stat-label">Resolved</span><span className="stat-value text-green-600">{complaints.filter(c=>c.status==='resolved').length}</span><p className="text-xs text-blue-500 mt-1">Click to view →</p></div></Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => setFilter('closed')}><div className="stat-card"><span className="stat-label">Closed</span><span className="stat-value">{complaints.filter(c=>c.status==='closed').length}</span><p className="text-xs text-blue-500 mt-1">Click to view →</p></div></Card>
       </div>
       <div className="flex gap-2 mb-4">
         {['all','open','investigating','resolved'].map(f=><Button key={f} variant={filter===f?'primary':'secondary'} size="sm" onClick={()=>setFilter(f)}>{f.charAt(0).toUpperCase()+f.slice(1)}</Button>)}
@@ -124,13 +138,33 @@ export default function ComplaintsPage() {
               <div className="flex gap-2">
                 {c.status==='open' && <Button variant="primary" size="sm" onClick={()=>updateStatus(c._id,'acknowledged')}>Acknowledge</Button>}
                 {(c.status==='open'||c.status==='acknowledged') && <Button variant="secondary" size="sm" onClick={()=>updateStatus(c._id,'investigating')}>Investigate</Button>}
-                {c.status==='investigating' && <Button variant="primary" size="sm" onClick={()=>resolve(c._id)}>Resolve</Button>}
+                {c.status==='investigating' && <Button variant="primary" size="sm" onClick={()=>openResolveModal(c._id)}>Resolve</Button>}
                 {c.status==='resolved' && <Button variant="secondary" size="sm" onClick={()=>close(c._id)}>Close</Button>}
               </div>
             </div>
           )}
         </Card>
       ))}</div>}
+      <Modal isOpen={showResolveModal} onClose={() => setShowResolveModal(false)} title="Resolve Complaint">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Resolution *</label>
+            <textarea className="form-input text-sm w-full" rows={3} placeholder="How was this resolved?" value={resolveForm.resolution} onChange={e=>setResolveForm({...resolveForm, resolution: e.target.value})}/>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Root Cause</label>
+            <input className="form-input text-sm w-full" placeholder="What caused this issue?" value={resolveForm.rootCause} onChange={e=>setResolveForm({...resolveForm, rootCause: e.target.value})}/>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Prevention Notes</label>
+            <input className="form-input text-sm w-full" placeholder="How to prevent recurrence?" value={resolveForm.prevention} onChange={e=>setResolveForm({...resolveForm, prevention: e.target.value})}/>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="primary" size="sm" onClick={resolve}>Submit Resolution</Button>
+            <Button variant="secondary" size="sm" onClick={()=>setShowResolveModal(false)}>Cancel</Button>
+          </div>
+        </div>
+      </Modal>
     </DashboardLayout>
   )
 }

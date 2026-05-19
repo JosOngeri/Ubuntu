@@ -227,6 +227,97 @@ const evaluateKPI = async (req, res) => {
   }
 };
 
+const getAllAssignedKPIs = async (req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT ek.id,
+              ek.employee_id,
+              ek.evaluator_id,
+              ek.definition_id,
+              ek.period,
+              ek.target_value,
+              ek.achieved_value,
+              ek.final_score,
+              ek.status,
+              ek.created_at,
+              ek.updated_at,
+              kd.title AS definition_title,
+              kd.description AS definition_description,
+              kd.max_score AS definition_max_score,
+              pb.bonus_amount,
+              pb.status AS bonus_status
+       FROM employee_kpis ek
+       JOIN kpi_definitions kd ON kd.id = ek.definition_id
+       LEFT JOIN pending_bonuses pb ON pb.employee_kpi_id = ek.id
+       ORDER BY ek.created_at DESC`
+    );
+
+    return res.json(rows);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+const bulkAssignKPI = async (req, res) => {
+  try {
+    const { employeeIds, definitionId, evaluatorId, period, targetValue } = req.body;
+    if (!employeeIds || !Array.isArray(employeeIds) || employeeIds.length === 0) {
+      return res.status(400).json({ error: 'employeeIds array is required' });
+    }
+    const defId = normalizeId(definitionId);
+    const evId = normalizeId(evaluatorId);
+    const tv = Number(targetValue);
+    const p = toOptionalText(period);
+
+    if (!defId || !evId || !p || Number.isNaN(tv) || tv <= 0) {
+      return res.status(400).json({ error: 'definitionId, evaluatorId, period, and targetValue are required' });
+    }
+
+    const results = [];
+    for (const empId of employeeIds) {
+      const id = normalizeId(empId);
+      if (!id) continue;
+      const { rows } = await query(
+        `INSERT INTO employee_kpis (employee_id, evaluator_id, definition_id, period, target_value, status, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, 'Pending', NOW(), NOW()) RETURNING *`,
+        [id, evId, defId, p, tv]
+      );
+      if (rows[0]) results.push(rows[0]);
+    }
+
+    return res.status(201).json({ assigned: results.length, results });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+const selfEvaluateKPI = async (req, res) => {
+  try {
+    const id = normalizeId(req.params.id);
+    const achievedValue = Number(req.body.achievedValue);
+    const notes = toOptionalText(req.body.notes);
+
+    if (!id || Number.isNaN(achievedValue) || achievedValue < 0) {
+      return res.status(400).json({ error: 'A valid KPI id and achievedValue are required' });
+    }
+
+    const { rows } = await query(
+      `UPDATE employee_kpis
+       SET achieved_value = $1, status = 'Pending Review', notes = $2, updated_at = NOW()
+       WHERE id = $3 RETURNING *`,
+      [achievedValue, notes || null, id]
+    );
+
+    if (!rows[0]) {
+      return res.status(404).json({ error: 'Employee KPI assignment not found' });
+    }
+
+    return res.json(rows[0]);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
 const getEmployeeKPIs = async (req, res) => {
   try {
     const employeeId = normalizeId(req.params.id);
@@ -270,8 +361,11 @@ module.exports = {
   updateKPI,
   deleteKPI,
   assignKPI,
+  bulkAssignKPI,
+  selfEvaluateKPI,
   evaluateKPI,
   getEmployeeKPIs,
+  getAllAssignedKPIs,
   startKpiBonusProcessor: (intervalMs = 60 * 60 * 1000) => {
     setInterval(processPendingBonuses, intervalMs);
   },

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getKPIs, createKPI, updateKPI, deleteKPI } from '../../services/kpi';
 import api, { employeeAPI } from '../../services/api';
 import Card from '../../components/common/Card'
@@ -11,6 +12,7 @@ import { toast } from 'react-toastify'
 import { downloadPdfReport } from '../../utils/reportExport'
 
 export default function KPI() {
+  const navigate = useNavigate();
   const [kpis, setKpis] = useState([]);
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'definitions', 'reports'
   const [kpiDefs, setKpiDefs] = useState([]);
@@ -27,6 +29,10 @@ export default function KPI() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assignForm, setAssignForm] = useState({ employee_id: '', kpi_definition_id: '', period: '', target_value: '' });
 
+  // Bulk Assign State
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkForm, setBulkForm] = useState({ employeeIds: [], kpi_definition_id: '', period: '', target_value: '' });
+
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -38,11 +44,10 @@ export default function KPI() {
   const fetchInitialData = async () => {
     setLoading(true);
     try {
-      // Safely fetch data across existing endpoints
       const [defsRes, empRes, globalRes] = await Promise.allSettled([
         getKPIs(),
         employeeAPI.getAll(),
-        api.get('/api/kpis').catch(() => ({ data: [] })) // Fallback if global endpoint doesn't exist yet
+        api.get('/api/kpis/all').catch(() => ({ data: [] }))
       ]);
 
       if (defsRes.status === 'fulfilled') setKpiDefs(defsRes.value.data || []);
@@ -141,6 +146,29 @@ export default function KPI() {
     }
   };
 
+  const handleBulkAssign = async (e) => {
+    e.preventDefault();
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const evaluatorId = currentUser.id || currentUser._id;
+      const def = kpiDefs.find(d => String(d.id || d._id) === String(bulkForm.kpi_definition_id));
+
+      await api.post('/api/kpis/bulk-assign', {
+        employeeIds: bulkForm.employeeIds,
+        definitionId: bulkForm.kpi_definition_id,
+        evaluatorId,
+        period: bulkForm.period,
+        targetValue: Number(bulkForm.target_value || def?.target || def?.maxScore || def?.max_score || 100)
+      });
+      toast.success(`KPI assigned to ${bulkForm.employeeIds.length} employees`);
+      setShowBulkModal(false);
+      setBulkForm({ employeeIds: [], kpi_definition_id: '', period: '', target_value: '' });
+      fetchInitialData();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Bulk assign failed');
+    }
+  };
+
   const filteredEmployeeKpis = useMemo(() => {
     return employeeKpis.filter(kpi => {
       const empId = kpi.employee_id || kpi.employeeId || kpi.employee || kpi.user_id;
@@ -189,15 +217,61 @@ export default function KPI() {
   ];
 
   const globalKpiColumns = [
-    { key: 'employee', label: 'Employee', render: (_, row) => getEmployeeName(row.employee_id || row.employeeId || row.employee || row.user_id) },
-    { key: 'title', label: 'Goal Title', render: (_, row) => row.definition_title || row.title || 'N/A' },
-    { key: 'period', label: 'Quarter', render: (_, row) => row.period },
+    {
+      key: 'employee',
+      label: 'Employee',
+      render: (_, row) => {
+        const empId = row.employee_id || row.employeeId || row.employee || row.user_id;
+        const empName = getEmployeeName(empId);
+        return (
+          <button
+            onClick={() => navigate(`/admin/employees/${empId}`)}
+            className="text-blue-500 hover:text-blue-700 hover:underline font-medium cursor-pointer"
+          >
+            {empName}
+          </button>
+        );
+      }
+    },
+    {
+      key: 'title',
+      label: 'Goal Title',
+      render: (_, row) => {
+        const title = row.definition_title || row.title || 'N/A';
+        return (
+          <button
+            onClick={() => toast.info(`KPI: ${title}`)}
+            className="text-slate-900 dark:text-slate-100 hover:text-blue-500 dark:hover:text-blue-400 font-medium cursor-pointer"
+          >
+            {title}
+          </button>
+        );
+      }
+    },
+    {
+      key: 'period',
+      label: 'Quarter',
+      render: (_, row) => {
+        const period = row.period;
+        return (
+          <button
+            onClick={() => {
+              setSearchQuery(period);
+              toast.info(`Filtered by period: ${period}`);
+            }}
+            className="text-slate-700 dark:text-slate-300 hover:text-blue-500 dark:hover:text-blue-400 cursor-pointer"
+          >
+            {period}
+          </button>
+        );
+      }
+    },
     { key: 'target_value', label: 'Target', render: (_, row) => row.target_value },
     { key: 'achieved_value', label: 'Achieved', render: (_, row) => row.achieved_value ?? '-' },
     { key: 'score', label: 'Score', render: (_, row) => {
         const score = Number(row.final_score ?? 0);
         return (
-           <div className="flex items-center gap-2 min-w-[100px]">
+           <div className="flex items-center gap-2 min-w-[100px] cursor-pointer" onClick={() => toast.info(`Score breakdown: ${score}%`)}>
               <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                  <div className={`h-full ${score >= 80 ? 'bg-green-500' : score >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${Math.min(100, Math.max(0, score))}%` }} />
               </div>
@@ -205,11 +279,24 @@ export default function KPI() {
            </div>
         );
     }},
-    { key: 'status', label: 'Status', render: (_, row) => (
-       <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.status === 'Completed' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-200'}`}>
-          {row.status || 'Pending'}
-       </span>
-    )}
+    {
+      key: 'status',
+      label: 'Status',
+      render: (_, row) => {
+        const status = row.status || 'Pending';
+        return (
+          <button
+            onClick={() => {
+              setStatusFilter(status);
+              toast.info(`Filtered by status: ${status}`);
+            }}
+            className={`px-2 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${status === 'Completed' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-200'}`}
+          >
+            {status}
+          </button>
+        );
+      }
+    }
   ];
 
   // Analytics Calculations
@@ -279,6 +366,9 @@ export default function KPI() {
             <Button variant="primary" onClick={() => setShowAssignModal(true)}>
               + Assign KPI
             </Button>
+            <Button variant="secondary" onClick={() => setShowBulkModal(true)}>
+              Bulk Assign
+            </Button>
           </div>
           {employeeKpis.length === 0 && !loading ? (
             <div className="text-center py-8 text-slate-500 border border-dashed border-slate-300 rounded-lg">
@@ -305,17 +395,20 @@ export default function KPI() {
       {activeTab === 'reports' && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Card className="p-6">
+            <Card className="p-6 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => setActiveTab('all')}>
               <p className="text-sm text-slate-500 dark:text-slate-400 uppercase font-semibold">Total Goals Assigned</p>
               <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">{employeeKpis.length}</p>
+              <p className="text-xs text-blue-500 mt-1">Click to view →</p>
             </Card>
-            <Card className="p-6">
+            <Card className="p-6 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => { setActiveTab('all'); setStatusFilter('Completed'); }}>
               <p className="text-sm text-slate-500 dark:text-slate-400 uppercase font-semibold">Completed</p>
               <p className="text-3xl font-bold text-green-600 dark:text-green-500 mt-2">{completedCount}</p>
+              <p className="text-xs text-blue-500 mt-1">Click to view →</p>
             </Card>
-            <Card className="p-6">
+            <Card className="p-6 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => setActiveTab('reports')}>
               <p className="text-sm text-slate-500 dark:text-slate-400 uppercase font-semibold">Average Global Score</p>
               <p className="text-3xl font-bold text-blue-600 dark:text-blue-500 mt-2">{avgScore}%</p>
+              <p className="text-xs text-blue-500 mt-1">Click to view →</p>
             </Card>
           </div>
 
@@ -327,7 +420,7 @@ export default function KPI() {
                 { label: 'Average (50-84%)', count: scoreDistribution.average, color: 'bg-yellow-500' },
                 { label: 'Needs Improvement (<50%)', count: scoreDistribution.poor, color: 'bg-red-500' },
               ].map((tier, idx) => (
-                <div key={idx} className="flex items-center gap-4">
+                <div key={idx} className="flex items-center gap-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 rounded-lg transition-colors" onClick={() => { setActiveTab('all'); if (tier.label.includes('Excellent')) setStatusFilter('Completed'); }}>
                   <div className="w-48 text-sm font-medium text-slate-700 dark:text-slate-300">{tier.label}</div>
                   <div className="flex-1 h-4 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                     <div className={`h-full ${tier.color}`} style={{ width: `${(tier.count / maxDist) * 100}%` }} />
@@ -413,6 +506,66 @@ export default function KPI() {
           <div className="flex gap-2 justify-end mt-4">
              <Button type="submit" variant="primary">Assign KPI</Button>
              <Button type="button" variant="ghost" onClick={() => setShowAssignModal(false)}>Cancel</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Bulk Assign Modal */}
+      <Modal isOpen={showBulkModal} onClose={() => setShowBulkModal(false)} title="Bulk Assign KPI">
+        <form onSubmit={handleBulkAssign} className="space-y-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Select Employees</label>
+            <div className="max-h-40 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg p-2 space-y-1">
+              {employees.map(emp => (
+                <label key={emp.id || emp._id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1 rounded">
+                  <input
+                    type="checkbox"
+                    checked={bulkForm.employeeIds.includes(String(emp.id || emp._id))}
+                    onChange={(e) => {
+                      const id = String(emp.id || emp._id);
+                      setBulkForm(prev => ({
+                        ...prev,
+                        employeeIds: e.target.checked
+                          ? [...prev.employeeIds, id]
+                          : prev.employeeIds.filter(i => i !== id)
+                      }));
+                    }}
+                  />
+                  {emp.firstName || emp.username} {emp.lastName || ''}
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-slate-500">{bulkForm.employeeIds.length} selected</p>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">KPI Definition</label>
+            <select className="form-select" value={bulkForm.kpi_definition_id} onChange={e => {
+              const def = kpiDefs.find(d => String(d.id || d._id) === String(e.target.value));
+              setBulkForm({
+                ...bulkForm,
+                kpi_definition_id: e.target.value,
+                target_value: def ? (def.target || def.maxScore || def.max_score || '') : bulkForm.target_value
+              });
+            }} required>
+              <option value="">Select KPI</option>
+              {kpiDefs.map(def => (
+                <option key={def.id || def._id} value={def.id || def._id}>{def.name || def.title}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Period</label>
+            <select className="form-select" value={bulkForm.period} onChange={e => setBulkForm({...bulkForm, period: e.target.value})} required>
+              <option value="">Select Period</option>
+              {['Q1', 'Q2', 'Q3', 'Q4'].map(q => (
+                <option key={`${q} ${new Date().getFullYear()}`} value={`${q} ${new Date().getFullYear()}`}>{q} {new Date().getFullYear()}</option>
+              ))}
+            </select>
+          </div>
+          <Input label="Target Value" type="number" value={bulkForm.target_value} onChange={e => setBulkForm({...bulkForm, target_value: e.target.value})} required />
+          <div className="flex gap-2 justify-end mt-4">
+            <Button type="submit" variant="primary" disabled={bulkForm.employeeIds.length === 0}>Assign to {bulkForm.employeeIds.length} Employees</Button>
+            <Button type="button" variant="ghost" onClick={() => setShowBulkModal(false)}>Cancel</Button>
           </div>
         </form>
       </Modal>

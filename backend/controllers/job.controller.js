@@ -87,14 +87,46 @@ const jobController = {
         education,
         references,
         additionalInfo,
+        personal_info,
+        address_info,
+        position_details,
+        employment_history,
+        skills,
+        declaration,
       } = req.body;
       const jobId = req.params.id;
       const cvPath = req.file
         ? path.relative(path.join(__dirname, '../'), req.file.path).split(path.sep).join('/')
         : null;
 
+      // Validation
+      const job = await Job.findById(jobId);
+      if (!job) return res.status(404).json({ msg: 'Job not found' });
+
+      // Check if job is still open
+      const now = new Date();
+      if (job.applicationClosingDate && new Date(job.applicationClosingDate) < now) {
+        return res.status(400).json({ msg: 'Application deadline has passed' });
+      }
+
+      // Validate date of birth (must be at least 18 years ago)
+      if (personal_info && personal_info.dateOfBirth) {
+        const dob = new Date(personal_info.dateOfBirth);
+        const minAgeDate = new Date();
+        minAgeDate.setFullYear(minAgeDate.getFullYear() - 18);
+        if (dob > minAgeDate) {
+          return res.status(400).json({ msg: 'Applicant must be at least 18 years old' });
+        }
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (applicantEmail && !emailRegex.test(applicantEmail)) {
+        return res.status(400).json({ msg: 'Invalid email format' });
+      }
+
       const applicationData = {
-        applicationMode: applicationMode || 'scratch',
+        applicationMode: applicationMode || 'structured',
         workHistory: parseJsonField(workHistory, []),
         education: parseJsonField(education, []),
         references: parseJsonField(references, []),
@@ -103,9 +135,16 @@ const jobController = {
 
       const { rows } = await query(
         `INSERT INTO job_applications 
-         (jobId, applicantName, applicantEmail, applicantPhone, cvPath, coverLetter, applicationData, user_id, status, appliedAt) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()) RETURNING *`,
-        [jobId, applicantName, applicantEmail, applicantPhone, cvPath, coverLetter, applicationData, userId, 'pending']
+         (jobId, applicantName, applicantEmail, applicantPhone, cvPath, coverLetter, applicationData, user_id, status, appliedAt, personal_info, address_info, position_details, education, employment_history, skills, declaration) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), $10, $11, $12, $13, $14, $15, $16) RETURNING *`,
+        [jobId, applicantName, applicantEmail, applicantPhone, cvPath, coverLetter || null, applicationData, userId, 'pending',
+         toJsonb(personal_info, null),
+         toJsonb(address_info, null),
+         toJsonb(position_details, null),
+         toJsonb(education, null),
+         toJsonb(employment_history, null),
+         toJsonb(skills, null),
+         toJsonb(declaration, null)]
       );
       res.status(201).json(rows[0]);
     } catch (err) {
@@ -217,6 +256,327 @@ const jobController = {
       res.json({ msg: 'Application deleted' });
     } catch (err) {
       res.status(400).json({ msg: 'Failed to delete application', error: err.message });
+    }
+  },
+
+  async shortlistApplication(req, res) {
+    try {
+      const applicationId = req.params.appId;
+      const application = await JobApplication.findById(applicationId);
+      if (!application) return res.status(404).json({ msg: 'Application not found' });
+
+      const updated = await JobApplication.update(applicationId, {
+        status: 'shortlisted',
+        interview_status: 'scheduled',
+        interview_date: new Date(),
+      });
+
+      res.json(updated);
+    } catch (err) {
+      res.status(500).json({ msg: 'Failed to shortlist application', error: err.message });
+    }
+  },
+
+  async updateInterviewScore(req, res) {
+    try {
+      const { score, notes } = req.body;
+      const applicationId = req.params.appId;
+      const application = await JobApplication.findById(applicationId);
+      if (!application) return res.status(404).json({ msg: 'Application not found' });
+
+      const updated = await JobApplication.update(applicationId, {
+        interview_score: score,
+        interview_notes: notes,
+        interview_status: 'completed',
+      });
+
+      res.json(updated);
+    } catch (err) {
+      res.status(500).json({ msg: 'Failed to update interview score', error: err.message });
+    }
+  },
+
+  async validateOffer(req, res) {
+    try {
+      const { token } = req.body;
+      const application = await JobApplication.findByOfferToken(token);
+
+      if (!application) {
+        return res.status(404).json({ msg: 'Invalid or expired offer token' });
+      }
+
+      if (application.offer_status === 'accepted') {
+        return res.status(400).json({ msg: 'Offer has already been accepted' });
+      }
+
+      res.json(application);
+    } catch (err) {
+      res.status(500).json({ msg: 'Failed to validate offer', error: err.message });
+    }
+  },
+
+  async acceptOffer(req, res) {
+    try {
+      const { token } = req.body;
+      const application = await JobApplication.findByOfferToken(token);
+
+      if (!application) {
+        return res.status(404).json({ msg: 'Invalid or expired offer token' });
+      }
+
+      const applicantPhone = application.applicantPhone;
+      const applicantNationalId = application.personalInfo?.nationalId;
+
+      if (!applicantPhone && !applicantNationalId) {
+        return res.status(400).json({ msg: 'No phone or national ID found for verification' });
+      }
+
+      const updated = await JobApplication.update(application.id, {
+        status: 'offer_accepted',
+        offer_status: 'accepted',
+      });
+
+      res.json(updated);
+    } catch (err) {
+      res.status(500).json({ msg: 'Failed to accept offer', error: err.message });
+    }
+  },
+
+  async acceptOfferWithVerification(req, res) {
+    try {
+      const { offerToken, verificationToken } = req.body;
+      const application = await JobApplication.findByOfferToken(offerToken);
+
+      if (!application) {
+        return res.status(404).json({ msg: 'Invalid or expired offer link' });
+      }
+
+      const applicantPhone = application.applicantPhone;
+      const applicantNationalId = application.personalInfo?.nationalId;
+
+      const phoneLast4 = applicantPhone ? applicantPhone.slice(-4) : null;
+      const nationalIdLast4 = applicantNationalId ? applicantNationalId.slice(-4) : null;
+
+      if (verificationToken !== phoneLast4 && verificationToken !== nationalIdLast4) {
+        return res.status(400).json({ msg: 'Invalid verification token' });
+      }
+
+      const updated = await JobApplication.update(application.id, {
+        status: 'offer_accepted',
+        offer_status: 'accepted',
+      });
+
+      res.json(updated);
+    } catch (err) {
+      res.status(500).json({ msg: 'Failed to accept offer', error: err.message });
+    }
+  },
+
+  async negotiateSalary(req, res) {
+    try {
+      const { token, counterOfferSalary } = req.body;
+      const application = await JobApplication.findByOfferToken(token);
+
+      if (!application) {
+        return res.status(404).json({ msg: 'Invalid or expired offer token' });
+      }
+
+      const updated = await JobApplication.update(application.id, {
+        status: 'offer_sent',
+        offer_status: 'negotiating',
+        counter_offer_salary: counterOfferSalary,
+      });
+
+      res.json(updated);
+    } catch (err) {
+      res.status(500).json({ msg: 'Failed to negotiate salary', error: err.message });
+    }
+  },
+
+  async negotiateSalaryWithVerification(req, res) {
+    try {
+      const { offerToken, verificationToken, counterOfferSalary } = req.body;
+      const application = await JobApplication.findByOfferToken(offerToken);
+
+      if (!application) {
+        return res.status(404).json({ msg: 'Invalid or expired offer link' });
+      }
+
+      const applicantPhone = application.applicantPhone;
+      const applicantNationalId = application.personalInfo?.nationalId;
+
+      const phoneLast4 = applicantPhone ? applicantPhone.slice(-4) : null;
+      const nationalIdLast4 = applicantNationalId ? applicantNationalId.slice(-4) : null;
+
+      if (verificationToken !== phoneLast4 && verificationToken !== nationalIdLast4) {
+        return res.status(400).json({ msg: 'Invalid verification token' });
+      }
+
+      const updated = await JobApplication.update(application.id, {
+        status: 'offer_sent',
+        offer_status: 'negotiating',
+        counter_offer_salary: counterOfferSalary,
+      });
+
+      res.json(updated);
+    } catch (err) {
+      res.status(500).json({ msg: 'Failed to negotiate salary', error: err.message });
+    }
+  },
+
+  async extendDeadline(req, res) {
+    try {
+      const { newDeadline } = req.body;
+      const jobId = req.params.id;
+
+      const job = await Job.findById(jobId);
+      if (!job) return res.status(404).json({ msg: 'Job not found' });
+
+      const updated = await Job.update(jobId, {
+        applicationDeadline: newDeadline,
+      });
+
+      res.json(updated);
+    } catch (err) {
+      res.status(500).json({ msg: 'Failed to extend deadline', error: err.message });
+    }
+  },
+
+  async sendOffer(req, res) {
+    try {
+      const { offerAmount } = req.body;
+      const applicationId = req.params.appId;
+      const application = await JobApplication.findById(applicationId);
+      if (!application) return res.status(404).json({ msg: 'Application not found' });
+
+      const crypto = require('crypto');
+      const offerToken = crypto.randomBytes(32).toString('hex');
+
+      const updated = await JobApplication.update(applicationId, {
+        status: 'offer_sent',
+        offered_salary: offerAmount,
+        offer_token: offerToken,
+        offer_sent_at: new Date(),
+        offer_status: 'pending',
+      });
+
+      // Send email to applicant
+      const { sendEmail } = require('../utils/email');
+      const offerLink = `${process.env.FRONTEND_URL || 'http://localhost:5177'}/offer-response?token=${offerToken}`;
+      await sendEmail({
+        to: application.applicantEmail,
+        subject: 'Job Offer - Ubuntu HRMS',
+        text: `Dear ${application.applicantName},\n\nWe are pleased to offer you the position. Please review the offer details at: ${offerLink}\n\nSalary Offer: ${offerAmount}\n\nYou can accept the offer or negotiate the salary through the link above.`,
+        html: `<p>Dear ${application.applicantName},</p><p>We are pleased to offer you the position.</p><p><strong>Salary Offer:</strong> ${offerAmount}</p><p>Please review the offer details at: <a href="${offerLink}">${offerLink}</a></p><p>You can accept the offer or negotiate the salary through the link above.</p>`,
+      });
+
+      res.json(updated);
+    } catch (err) {
+      res.status(500).json({ msg: 'Failed to send offer', error: err.message });
+    }
+  },
+
+  async filterApplicants(req, res) {
+    try {
+      const { jobId } = req.params;
+      const { filters } = req.body;
+
+      const applications = await JobApplication.findByJob(jobId);
+      const job = await Job.findById(jobId);
+
+      let filtered = applications;
+
+      if (filters && Array.isArray(filters)) {
+        filtered = applications.filter(app => {
+          const personalInfo = app.personalInfo || {};
+          const addressInfo = app.addressInfo || {};
+          const positionDetails = app.positionDetails || {};
+          const education = app.education || {};
+          const employmentHistory = app.employmentHistory || [];
+          const skills = app.skills || {};
+
+          return filters.every(filter => {
+            const { field, operator, value } = filter;
+
+            switch (field) {
+              case 'gender':
+                if (operator === 'equals') return personalInfo.gender === value;
+                if (operator === 'not_equals') return personalInfo.gender !== value;
+                return false;
+
+              case 'nationality':
+                if (operator === 'equals') return personalInfo.nationality === value;
+                if (operator === 'not_equals') return personalInfo.nationality !== value;
+                return false;
+
+              case 'age':
+                const dob = personalInfo.dateOfBirth ? new Date(personalInfo.dateOfBirth) : null;
+                if (!dob) return false;
+                const age = Math.floor((new Date() - dob) / (365.25 * 24 * 60 * 60 * 1000));
+                if (operator === 'gte') return age >= value;
+                if (operator === 'lte') return age <= value;
+                if (operator === 'equals') return age === value;
+                return false;
+
+              case 'location':
+                const city = addressInfo.residentialAddress?.city || '';
+                if (operator === 'equals') return city.toLowerCase() === value.toLowerCase();
+                if (operator === 'contains') return city.toLowerCase().includes(value.toLowerCase());
+                return false;
+
+              case 'willingToRelocate':
+                return positionDetails.willingToRelocate === value;
+
+              case 'willingToTravel':
+                return positionDetails.willingToTravel === value;
+
+              case 'expectedSalary':
+                const salary = parseFloat(positionDetails.expectedSalary) || 0;
+                const filterSalary = parseFloat(value) || 0;
+                if (operator === 'lte') return salary <= filterSalary;
+                if (operator === 'gte') return salary >= filterSalary;
+                return false;
+
+              case 'qualification':
+                const qualifications = education.furtherEducation || [];
+                const hasQualification = qualifications.some(edu => 
+                  edu.qualification?.toLowerCase() === value.toLowerCase()
+                );
+                return hasQualification;
+
+              case 'yearsExperience':
+                const totalYears = employmentHistory.reduce((sum, work) => {
+                  if (work.startDate && work.endDate) {
+                    const start = new Date(work.startDate);
+                    const end = new Date(work.endDate);
+                    return sum + (end.getFullYear() - start.getFullYear());
+                  }
+                  return sum;
+                }, 0);
+                if (operator === 'gte') return totalYears >= value;
+                if (operator === 'lte') return totalYears <= value;
+                return false;
+
+              case 'hasCertifications':
+                const certs = education.certifications || [];
+                return certs.length > 0;
+
+              case 'language':
+                const languages = skills.languages || [];
+                return languages.some(lang => 
+                  lang.language?.toLowerCase().includes(value.toLowerCase())
+                );
+
+              default:
+                return true;
+            }
+          });
+        });
+      }
+
+      res.json(filtered);
+    } catch (err) {
+      res.status(500).json({ msg: 'Failed to filter applicants', error: err.message });
     }
   },
 

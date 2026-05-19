@@ -6,6 +6,9 @@ const KPI = require('../models/KPI.model');
 const User = require('../models/User.model');
 const Job = require('../models/Job.model');
 const JobApplication = require('../models/JobApplication.model');
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const path = require('path');
 
 const populateEmployeeForAttendance = async (record) => {
   if (!record.employeeId) return record;
@@ -357,6 +360,83 @@ const dashboardSummary = async (req, res) => {
   }
 };
 
+const generatePdfReport = async (req, res) => {
+  try {
+    const { type, from, to, department } = req.query;
+
+    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    const filename = `${type}-report-${Date.now()}.pdf`;
+    const pdfPath = path.join(__dirname, '../tmp', filename);
+
+    if (!fs.existsSync(path.join(__dirname, '../tmp'))) {
+      fs.mkdirSync(path.join(__dirname, '../tmp'), { recursive: true });
+    }
+
+    doc.pipe(fs.createWriteStream(pdfPath));
+
+    doc.fontSize(20).text(`${type.charAt(0).toUpperCase() + type.slice(1)} Report`, { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(12).text(`Generated: ${new Date().toLocaleDateString()}`, { align: 'center' });
+    if (from && to) doc.text(`Period: ${from} to ${to}`, { align: 'center' });
+    if (department) doc.text(`Department: ${department}`, { align: 'center' });
+    doc.moveDown();
+
+    const data = await getReportData(type, from, to, department);
+    if (data?.summary) {
+      doc.fontSize(14).text('Summary', { underline: true });
+      doc.moveDown();
+      Object.entries(data.summary).forEach(([key, value]) => {
+        doc.text(`${key}: ${typeof value === 'number' ? value.toLocaleString() : value}`);
+      });
+      doc.moveDown();
+    }
+
+    if (data?.rows?.length > 0) {
+      doc.fontSize(14).text('Details', { underline: true });
+      doc.moveDown();
+      data.rows.forEach((row, i) => {
+        const label = Object.values(row)[0];
+        const value = Object.values(row).find(v => typeof v === 'number') || Object.values(row)[1];
+        doc.text(`${label}: ${typeof value === 'number' ? value.toLocaleString() : value}`);
+        if (i < data.rows.length - 1) doc.moveDown(0.3);
+      });
+    }
+
+    doc.end();
+
+    await new Promise((resolve) => doc.on('end', resolve));
+
+    res.download(pdfPath, filename, (err) => {
+      if (err) console.error(err);
+      fs.unlinkSync(pdfPath);
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const getReportData = async (type, from, to, department) => {
+  const reportHandlers = {
+    attendance: attendanceReport,
+    leave: leaveReport,
+    payroll: payrollReport,
+    kpi: kpiReport,
+    employee: employeeReport,
+    recruitment: recruitmentReport,
+  };
+
+  const handler = reportHandlers[type];
+  if (!handler) return null;
+
+  const mockReq = { query: { from, to, department } };
+  const mockRes = {
+    json: (data) => data,
+    status: () => ({ json: (data) => data }),
+  };
+
+  return await handler(mockReq, mockRes);
+};
+
 module.exports = {
   attendanceReport,
   leaveReport,
@@ -365,4 +445,5 @@ module.exports = {
   employeeReport,
   recruitmentReport,
   dashboardSummary,
+  generatePdfReport,
 };

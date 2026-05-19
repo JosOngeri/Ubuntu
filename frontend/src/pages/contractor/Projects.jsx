@@ -1,13 +1,16 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { BsCalendarCheck, BsCheckCircle, BsClock } from 'react-icons/bs'
 import Card from '../../components/common/Card'
 import DashboardLayout from '../../components/DashboardLayout'
+import Table from '../../components/common/Table'
 import { contractorAPI } from '../../services/api'
 import { toast } from 'react-toastify'
 
 const ContractorProjects = () => {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
+  const [sortField, setSortField] = useState('name')
+  const [sortDirection, setSortDirection] = useState('asc')
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -24,6 +27,39 @@ const ContractorProjects = () => {
 
     fetchProjects()
   }, [])
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedProjects = useMemo(() => {
+    return [...projects].sort((a, b) => {
+      let aVal = a[sortField];
+      let bVal = b[sortField];
+      
+      if (sortField === 'due_date') {
+        aVal = aVal ? new Date(aVal).getTime() : 0;
+        bVal = bVal ? new Date(bVal).getTime() : 0;
+      } else {
+        aVal = String(aVal || '').toLowerCase();
+        bVal = String(bVal || '').toLowerCase();
+      }
+      
+      const comparison = aVal.localeCompare(bVal, undefined, { numeric: true, sensitivity: 'base' });
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [projects, sortField, sortDirection]);
+
+  const columns = [
+    { key: 'name', label: 'Project', sortable: true },
+    { key: 'status', label: 'Status', sortable: true },
+    { key: 'due_date', label: 'Due Date', sortable: true, render: (date) => date ? new Date(date).toLocaleDateString() : 'N/A' },
+  ];
 
   if (loading) {
     return (
@@ -67,26 +103,7 @@ const ContractorProjects = () => {
       </div>
 
       <div className="mt-8">
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-            <thead className="bg-slate-50 dark:bg-slate-950">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Project</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Due Date</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-950">
-              {projects.map((project) => (
-                <tr key={project.id}>
-                  <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">{project.name}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{project.status}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{project.due}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table columns={columns} data={sortedProjects} loading={loading} sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
       </div>
     </DashboardLayout>
   )

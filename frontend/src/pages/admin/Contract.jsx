@@ -1,16 +1,19 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getContracts, createContract, updateContract, deleteContract } from '../../services/contract';
 import { employeeAPI } from '../../services/api';
-import Card from '../../components/common/Card';
-import DashboardLayout from '../../components/DashboardLayout';
-import Button from '../../components/common/Button';
-import Input from '../../components/common/Input';
-import Table from '../../components/common/Table';
-import Modal from '../../components/common/Modal';
-import { toast } from 'react-toastify';
+import Card from '../../components/common/Card'
+import DashboardLayout from '../../components/DashboardLayout'
+import Button from '../../components/common/Button'
+import Input from '../../components/common/Input'
+import Table from '../../components/common/Table'
+import Modal from '../../components/common/Modal'
+import DateDropdown from '../../components/common/DateDropdown'
+import { toast } from 'react-toastify'
 import { downloadPdfReport } from '../../utils/reportExport';
 
 export default function Contract() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('contracts'); // 'contracts', 'analytics'
   const [contracts, setContracts] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -18,6 +21,8 @@ export default function Contract() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sortField, setSortField] = useState('title');
+  const [sortDirection, setSortDirection] = useState('asc');
 
   const [showFormModal, setShowFormModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -25,6 +30,8 @@ export default function Contract() {
   const [editing, setEditing] = useState(null);
   
   const [form, setForm] = useState({ employee: '', title: '', startDate: '', endDate: '', terms: '', status: 'active', document: null });
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
 
   useEffect(() => { 
     fetchData(); 
@@ -103,8 +110,17 @@ export default function Contract() {
     return emp ? `${emp.firstName || ''} ${emp.lastName || ''}`.trim() : empId;
   };
 
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   const filteredContracts = useMemo(() => {
-    return contracts.filter(contract => {
+    let filtered = contracts.filter(contract => {
       const empName = String(getEmployeeName(contract.employee || contract.employee_id)).toLowerCase();
       const contractTitle = String(contract.title || '').toLowerCase();
       const search = searchQuery.toLowerCase();
@@ -114,7 +130,20 @@ export default function Contract() {
       
       return matchesSearch && matchesStatus;
     });
-  }, [contracts, searchQuery, statusFilter, employees]);
+
+    return filtered.sort((a, b) => {
+      let aVal = a[sortField];
+      let bVal = b[sortField];
+      
+      if (sortField === 'employee' || sortField === 'employee_id') {
+        aVal = getEmployeeName(a[sortField]);
+        bVal = getEmployeeName(b[sortField]);
+      }
+      
+      const comparison = String(aVal || '').localeCompare(String(bVal || ''), undefined, { numeric: true, sensitivity: 'base' });
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [contracts, searchQuery, statusFilter, employees, sortField, sortDirection]);
 
   const stats = useMemo(() => {
     return {
@@ -177,15 +206,39 @@ export default function Contract() {
   };
 
   const columns = [
-    { key: 'employee', label: 'Employee', render: (_, row) => getEmployeeName(row.employee || row.employee_id) },
-    { key: 'title', label: 'Contract Title' },
-    { key: 'startDate', label: 'Start Date', render: (_, row) => row.startDate ? new Date(row.startDate).toLocaleDateString() : 'N/A' },
-    { key: 'endDate', label: 'End Date', render: (_, row) => row.endDate ? new Date(row.endDate).toLocaleDateString() : 'N/A' },
-    { key: 'status', label: 'Status', render: (_, row) => (
-       <span className={`px-2 py-1 rounded-full text-xs font-medium uppercase ${getStatusColor(row.status)}`}>
+    {
+      key: 'employee',
+      label: 'Employee',
+      sortable: true,
+      render: (_, row) => {
+        const empId = row.employee || row.employee_id;
+        const empName = getEmployeeName(empId);
+        return (
+          <button
+            onClick={() => navigate(`/admin/employees/${empId}`)}
+            className="text-blue-500 hover:text-blue-700 hover:underline font-medium cursor-pointer"
+          >
+            {empName}
+          </button>
+        );
+      }
+    },
+    { key: 'title', label: 'Contract Title', sortable: true },
+    { key: 'startDate', label: 'Start Date', sortable: true, render: (_, row) => row.startDate ? new Date(row.startDate).toLocaleDateString() : 'N/A' },
+    { key: 'endDate', label: 'End Date', sortable: true, render: (_, row) => row.endDate ? new Date(row.endDate).toLocaleDateString() : 'N/A' },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      render: (_, row) => (
+        <button
+          onClick={() => setStatusFilter(row.status === statusFilter ? 'all' : row.status)}
+          className={`px-2 py-1 rounded-full text-xs font-medium uppercase cursor-pointer hover:opacity-80 transition-opacity ${getStatusColor(row.status)}`}
+        >
           {row.status || 'active'}
-       </span>
-    )},
+        </button>
+      )
+    },
     { key: 'actions', label: 'Actions', render: (_, row) => (
         <div className="flex gap-2">
           <Button size="sm" variant="secondary" onClick={() => { setSelectedContract(row); setShowViewModal(true); }}>View</Button>
@@ -245,28 +298,32 @@ export default function Contract() {
               </Button>
             </div>
           </div>
-          <Table columns={columns} data={filteredContracts} loading={loading} />
+          <Table columns={columns} data={filteredContracts} loading={loading} sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
         </Card>
       )}
 
       {activeTab === 'analytics' && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="p-6">
+            <Card className="p-6 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => setActiveTab('contracts')}>
               <p className="text-sm text-slate-500 dark:text-slate-400 uppercase font-semibold">Total Contracts</p>
               <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">{stats.total}</p>
+              <p className="text-xs text-blue-500 mt-1">Click to view →</p>
             </Card>
-            <Card className="p-6">
+            <Card className="p-6 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => { setActiveTab('contracts'); setStatusFilter('active'); }}>
               <p className="text-sm text-slate-500 dark:text-slate-400 uppercase font-semibold">Active</p>
               <p className="text-3xl font-bold text-green-600 dark:text-green-500 mt-2">{stats.active}</p>
+              <p className="text-xs text-blue-500 mt-1">Click to view →</p>
             </Card>
-            <Card className="p-6">
+            <Card className="p-6 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => { setActiveTab('contracts'); setStatusFilter('expired'); }}>
               <p className="text-sm text-slate-500 dark:text-slate-400 uppercase font-semibold">Expired</p>
               <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-500 mt-2">{stats.expired}</p>
+              <p className="text-xs text-blue-500 mt-1">Click to view →</p>
             </Card>
-            <Card className="p-6">
+            <Card className="p-6 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => { setActiveTab('contracts'); setStatusFilter('terminated'); }}>
               <p className="text-sm text-slate-500 dark:text-slate-400 uppercase font-semibold">Terminated</p>
               <p className="text-3xl font-bold text-red-600 dark:text-red-500 mt-2">{stats.terminated}</p>
+              <p className="text-xs text-blue-500 mt-1">Click to view →</p>
             </Card>
           </div>
 
@@ -334,8 +391,30 @@ export default function Contract() {
               </select>
             </div>
             <Input label="Contract Title" name="title" value={form.title} onChange={handleChange} required />
-            <Input label="Start Date" name="startDate" type="date" value={form.startDate} onChange={handleChange} required />
-            <Input label="End Date" name="endDate" type="date" value={form.endDate} onChange={handleChange} />
+            <DateDropdown 
+                selectedDate={startDate}
+                onDateChange={(date) => {
+                  setStartDate(date);
+                  setForm({...form, startDate: date ? date.toISOString().split('T')[0] : ''});
+                }}
+                label="Start Date"
+                showYear={true}
+                showMonth={true}
+                showDay={true}
+                yearRange={10}
+              />
+            <DateDropdown 
+                selectedDate={endDate}
+                onDateChange={(date) => {
+                  setEndDate(date);
+                  setForm({...form, endDate: date ? date.toISOString().split('T')[0] : ''});
+                }}
+                label="End Date"
+                showYear={true}
+                showMonth={true}
+                showDay={true}
+                yearRange={10}
+              />
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Status</label>
               <select name="status" className="form-select" value={form.status} onChange={handleChange}>

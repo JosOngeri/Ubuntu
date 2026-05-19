@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { BsDownload, BsFilter, BsCalendar3, BsGraphUp } from 'react-icons/bs'
 import Card from '../../components/common/Card'
 import DashboardLayout from '../../components/DashboardLayout'
+import DateDropdown from '../../components/common/DateDropdown'
 import { contractorAPI } from '../../services/api'
 import { toast } from 'react-toastify'
 
@@ -14,6 +15,8 @@ const ContractorReports = () => {
     startDate: '',
     endDate: ''
   })
+  const [startDate, setStartDate] = useState(null)
+  const [endDate, setEndDate] = useState(null)
 
   useEffect(() => {
     fetchReports()
@@ -113,29 +116,31 @@ const ContractorReports = () => {
 
           {filters.dateRange === 'custom' && (
             <>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={filters.startDate}
-                  onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                />
-              </div>
+              <DateDropdown 
+                selectedDate={startDate}
+                onDateChange={(date) => {
+                  setStartDate(date);
+                  setFilters({...filters, startDate: date ? date.toISOString().split('T')[0] : ''});
+                }}
+                label="Start Date"
+                showYear={true}
+                showMonth={true}
+                showDay={true}
+                yearRange={5}
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  value={filters.endDate}
-                  onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                />
-              </div>
+              <DateDropdown 
+                selectedDate={endDate}
+                onDateChange={(date) => {
+                  setEndDate(date);
+                  setFilters({...filters, endDate: date ? date.toISOString().split('T')[0] : ''});
+                }}
+                label="End Date"
+                showYear={true}
+                showMonth={true}
+                showDay={true}
+                yearRange={5}
+              />
             </>
           )}
         </div>

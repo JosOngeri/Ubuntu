@@ -573,8 +573,49 @@ const getPayslips = async (req, res) => {
   }
 };
 
+const batchGeneratePayroll = async (req, res) => {
+  try {
+    const { period } = req.body;
+    const parsed = parsePeriod(period);
+    if (!parsed) {
+      return res.status(400).json({ error: 'Invalid period format. Use YYYY-MM' });
+    }
+
+    const { rows: employees } = await query('SELECT id FROM employees WHERE employment_type = $1', ['Monthly']);
+    const results = [];
+    const errors = [];
+
+    for (const emp of employees) {
+      try {
+        const { rows: existing } = await query(
+          'SELECT id FROM payroll WHERE employee_id = $1 AND period = $2',
+          [emp.id, period]
+        );
+        if (existing.length > 0) {
+          continue; // Skip if already generated
+        }
+
+        const { rows: payroll } = await query(
+          `INSERT INTO payroll (employee_id, period, status, gross_pay, overtime_pay, kpi_bonus, deductions, net_pay, payment_method, created_at, updated_at)
+           VALUES ($1, $2, 'Draft', 0, 0, 0, 0, 0, 'MPESA', NOW(), NOW())
+           RETURNING *`,
+          [emp.id, period]
+        );
+        results.push(payroll[0]);
+      } catch (err) {
+        errors.push({ employeeId: emp.id, error: err.message });
+      }
+    }
+
+    return res.json({ generated: results.length, skipped: employees.length - results.length, errors, results });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   calculatePayroll,
+  batchGeneratePayroll,
   approvePayroll,
   disbursePayroll,
   handleMpesaCallback,

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import Card from '../../components/common/Card'
 import Button from '../../components/common/Button'
+import DateDropdown from '../../components/common/DateDropdown'
 import api from '../../services/api'
 import { toast } from 'react-toastify'
 import { BsGraphUp, BsPeople, BsCalendarCheck, BsCash, BsClock, BsDownload } from 'react-icons/bs'
@@ -18,10 +20,13 @@ const REPORT_TYPES = [
 ]
 
 export default function ReportsPage() {
+  const navigate = useNavigate()
   const [type, setType] = useState('attendance')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [range, setRange] = useState({ from: '', to: '' })
+  const [fromDate, setFromDate] = useState(null)
+  const [toDate, setToDate] = useState(null)
   const [dept, setDept] = useState('all')
 
   const fetchReport = async () => {
@@ -49,6 +54,23 @@ export default function ReportsPage() {
     a.href = url; a.download = type + '-report.csv'; a.click()
   }
 
+  const exportPDF = async () => {
+    try {
+      const params = {}
+      if (range.from) params.from = range.from
+      if (range.to) params.to = range.to
+      if (dept !== 'all') params.department = dept
+      params.type = type
+
+      const url = new URL(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/reports/pdf`)
+      Object.keys(params).forEach(key => url.searchParams.append(key, params[key]))
+
+      window.open(url.toString(), '_blank')
+    } catch (err) {
+      toast.error('Failed to generate PDF')
+    }
+  }
+
   const maxVal = data?.rows?.length ? Math.max(...data.rows.map(r => Object.values(r).find(v => typeof v === 'number') || 0), 1) : 1
 
   return (
@@ -61,12 +83,32 @@ export default function ReportsPage() {
       <Card className="mb-4">
         <div className="flex flex-wrap gap-3 items-end">
           <div>
-            <label className="text-xs text-slate-500 block mb-1">From</label>
-            <input type="date" className="form-input text-sm" value={range.from} onChange={e => setRange({...range, from: e.target.value})} />
+            <DateDropdown 
+              selectedDate={fromDate}
+              onDateChange={(date) => {
+                setFromDate(date);
+                setRange({...range, from: date ? date.toISOString().split('T')[0] : ''});
+              }}
+              label="From"
+              showYear={true}
+              showMonth={true}
+              showDay={true}
+              yearRange={5}
+            />
           </div>
           <div>
-            <label className="text-xs text-slate-500 block mb-1">To</label>
-            <input type="date" className="form-input text-sm" value={range.to} onChange={e => setRange({...range, to: e.target.value})} />
+            <DateDropdown 
+              selectedDate={toDate}
+              onDateChange={(date) => {
+                setToDate(date);
+                setRange({...range, to: date ? date.toISOString().split('T')[0] : ''});
+              }}
+              label="To"
+              showYear={true}
+              showMonth={true}
+              showDay={true}
+              yearRange={5}
+            />
           </div>
           <div>
             <label className="text-xs text-slate-500 block mb-1">Department</label>
@@ -82,6 +124,7 @@ export default function ReportsPage() {
           </div>
           <Button variant="primary" size="sm" onClick={fetchReport}>Generate</Button>
           {data?.rows?.length > 0 && <Button variant="outline" size="sm" onClick={exportCSV}><BsDownload className="mr-1"/>Export CSV</Button>}
+          {data?.rows?.length > 0 && <Button variant="outline" size="sm" onClick={exportPDF}><BsDownload className="mr-1"/>Export PDF</Button>}
         </div>
       </Card>
 
@@ -96,10 +139,11 @@ export default function ReportsPage() {
       ) : data?.summary ? (
         <div className="grid grid-cols-4 gap-4 mb-6">
           {Object.entries(data.summary).map(([k, v]) => (
-            <Card key={k}>
+            <Card key={k} className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => navigate(`/${type.toLowerCase()}`)}>
               <div className="stat-card">
                 <span className="stat-label">{k.replace(/([A-Z])/g, ' $1').trim()}</span>
                 <span className="stat-value">{typeof v === 'number' ? v.toLocaleString() : v}</span>
+                <p className="text-xs text-blue-500 mt-1">Click to view →</p>
               </div>
             </Card>
           ))}
@@ -115,7 +159,7 @@ export default function ReportsPage() {
               const val = Object.values(row).find(v => typeof v === 'number') || 0
               const pct = Math.round((val / maxVal) * 100)
               return (
-                <div key={i}>
+                <div key={i} className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 rounded-lg transition-colors">
                   <div className="flex justify-between text-sm mb-1">
                     <span className="font-medium text-slate-700">{String(label)}</span>
                     <span className="text-slate-500">{typeof val === 'number' ? val.toLocaleString() : val}</span>

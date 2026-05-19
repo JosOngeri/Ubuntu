@@ -5,6 +5,7 @@ import Card from '../../components/common/Card'
 import Button from '../../components/common/Button'
 import Input from '../../components/common/Input'
 import Modal from '../../components/common/Modal'
+import DateDropdown from '../../components/common/DateDropdown'
 import api from '../../services/api'
 import { toast } from 'react-toastify'
 import { useSettings } from '../../contexts/SettingsContext'
@@ -36,6 +37,10 @@ export default function MultiStepJobApplicationForm() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  
+  // Date states for DateDropdown components
+  const [dateOfBirth, setDateOfBirth] = useState(null)
+  const [dateAvailable, setDateAvailable] = useState(null)
 
   const departments = getDepartments()
   const employmentTypes = getEmploymentTypes()
@@ -320,20 +325,24 @@ export default function MultiStepJobApplicationForm() {
 
           {/* Step Indicator */}
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              {STEPS.map((step) => (
-                <div key={step.id} className="flex flex-col items-center flex-1">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    currentStep >= step.id ? 'bg-primary text-white' : 'bg-slate-200 text-slate-600'
-                  }`}>
-                    {currentStep > step.id ? '✓' : step.id}
+            <div className="relative">
+              {/* Background bar */}
+              <div className="absolute top-4 left-0 right-0 h-1 bg-slate-200 rounded-full"></div>
+              {/* Filled bar */}
+              <div className="absolute top-4 left-0 h-1 bg-primary rounded-full transition-all" style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }}></div>
+              {/* Steps */}
+              <div className="relative flex justify-between">
+                {STEPS.map((step) => (
+                  <div key={step.id} className="flex flex-col items-center" style={{ width: '14.28%' }}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold z-10 ${
+                      currentStep >= step.id ? 'bg-primary text-white' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      {currentStep > step.id ? '✓' : step.id}
+                    </div>
+                    <div className="text-xs text-center mt-2 text-slate-600 leading-tight">{step.title}</div>
                   </div>
-                  <div className="text-xs text-center mt-2 text-slate-600">{step.title}</div>
-                </div>
-              ))}
-            </div>
-            <div className="w-full bg-slate-200 rounded-full h-2">
-              <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${(currentStep / 7) * 100}%` }}></div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -345,7 +354,18 @@ export default function MultiStepJobApplicationForm() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input label="First Name *" name="firstName" value={form.firstName} onChange={handleChange} required />
                   <Input label="Last Name *" name="lastName" value={form.lastName} onChange={handleChange} required />
-                  <Input label="Date of Birth" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
+                  <DateDropdown 
+                  selectedDate={dateOfBirth}
+                  onDateChange={(date) => {
+                    setDateOfBirth(date);
+                    setForm({...form, dateOfBirth: date ? date.toISOString().split('T')[0] : ''});
+                  }}
+                  label="Date of Birth"
+                  showYear={true}
+                  showMonth={true}
+                  showDay={true}
+                  yearRange={50}
+                />
                   <div>
                     <label className="block text-sm font-medium mb-2">Gender</label>
                     <select className="form-input w-full" name="gender" value={form.gender} onChange={handleChange}>
@@ -415,7 +435,18 @@ export default function MultiStepJobApplicationForm() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input label="Expected Salary" name="expectedSalary" value={form.expectedSalary} onChange={handleChange} />
-                  <Input label="Date Available to Start" name="dateAvailable" type="date" value={form.dateAvailable} onChange={handleChange} />
+                  <DateDropdown 
+                  selectedDate={dateAvailable}
+                  onDateChange={(date) => {
+                    setDateAvailable(date);
+                    setForm({...form, dateAvailable: date ? date.toISOString().split('T')[0] : ''});
+                  }}
+                  label="Date Available to Start"
+                  showYear={true}
+                  showMonth={true}
+                  showDay={true}
+                  yearRange={5}
+                />
                   <div className="flex items-center gap-2">
                     <input type="checkbox" name="willingToRelocate" checked={form.willingToRelocate} onChange={handleChange} className="w-4 h-4" />
                     <label className="text-sm">Willing to Relocate</label>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { leaveAPI, employeeAPI } from '../../services/api'
 import Card from '../../components/common/Card'
 import DashboardLayout from '../../components/DashboardLayout'
@@ -9,6 +10,7 @@ import { toast } from 'react-toastify'
 import { downloadPdfReport } from '../../utils/reportExport'
 
 const AdminLeave = () => {
+  const navigate = useNavigate()
   const [allLeaves, setAllLeaves] = useState([])
   const [employees, setEmployees] = useState([])
   const [selectedLeave, setSelectedLeave] = useState(null)
@@ -52,7 +54,9 @@ const AdminLeave = () => {
   const handleStatusChange = async (leaveId, newStatus) => {
     try {
       setUpdating(true)
-      await leaveAPI.updateLeaveStatus(leaveId, { status: newStatus, approverId: 1 })
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+      const approverId = currentUser.id || currentUser._id || 1
+      await leaveAPI.updateLeaveStatus(leaveId, { status: newStatus, approverId })
       toast.success(`Leave ${newStatus.toLowerCase()}`)
       await fetchLeaves()
       setSelectedLeave(null)
@@ -125,15 +129,33 @@ const AdminLeave = () => {
   }
 
   const allLeavesColumns = [
-    { key: 'employee', label: 'Employee', render: (_, row) => getEmployeeName(row.employee_id) },
+    {
+      key: 'employee',
+      label: 'Employee',
+      render: (_, row) => (
+        <button
+          onClick={() => navigate(`/admin/employees/${row.employee_id}`)}
+          className="text-blue-500 hover:text-blue-700 hover:underline font-medium cursor-pointer"
+        >
+          {getEmployeeName(row.employee_id)}
+        </button>
+      )
+    },
     { key: 'type', label: 'Type', render: (_, row) => row.type.charAt(0).toUpperCase() + row.type.slice(1) },
     { key: 'start_date', label: 'Start Date', render: (date) => new Date(date).toLocaleDateString() },
     { key: 'end_date', label: 'End Date', render: (date) => new Date(date).toLocaleDateString() },
-    { key: 'status', label: 'Status', render: (_, row) => (
-        <span className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(row.status)}`}>
+    {
+      key: 'status',
+      label: 'Status',
+      render: (_, row) => (
+        <button
+          onClick={() => setStatusFilter(row.status === statusFilter ? 'all' : row.status)}
+          className={`rounded-full px-2 py-1 text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${getStatusColor(row.status)}`}
+        >
           {row.status?.replace(/_/g, ' ')}
-        </span>
-    ) },
+        </button>
+      )
+    },
   ]
 
   const totalLeaves = allLeaves.length;
@@ -334,21 +356,25 @@ const AdminLeave = () => {
       {activeTab === 'reports' && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="p-6">
+            <Card className="p-6 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => setActiveTab('all')}>
               <p className="text-sm text-slate-500 dark:text-slate-400 uppercase font-semibold">Total Requests</p>
               <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">{totalLeaves}</p>
+              <p className="text-xs text-blue-500 mt-1">Click to view →</p>
             </Card>
-            <Card className="p-6">
+            <Card className="p-6 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => { setActiveTab('all'); setStatusFilter('Approved'); }}>
               <p className="text-sm text-slate-500 dark:text-slate-400 uppercase font-semibold">Approved</p>
               <p className="text-3xl font-bold text-green-600 dark:text-green-500 mt-2">{approvedLeaves}</p>
+              <p className="text-xs text-blue-500 mt-1">Click to view →</p>
             </Card>
-            <Card className="p-6">
+            <Card className="p-6 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => { setActiveTab('approvals'); }}>
               <p className="text-sm text-slate-500 dark:text-slate-400 uppercase font-semibold">Pending</p>
               <p className="text-3xl font-bold text-blue-600 dark:text-blue-500 mt-2">{pendingLeaves.length}</p>
+              <p className="text-xs text-blue-500 mt-1">Click to view →</p>
             </Card>
-            <Card className="p-6">
+            <Card className="p-6 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => { setActiveTab('all'); setStatusFilter('Rejected'); }}>
               <p className="text-sm text-slate-500 dark:text-slate-400 uppercase font-semibold">Rejected</p>
               <p className="text-3xl font-bold text-red-600 dark:text-red-500 mt-2">{rejectedLeaves}</p>
+              <p className="text-xs text-blue-500 mt-1">Click to view →</p>
             </Card>
           </div>
 

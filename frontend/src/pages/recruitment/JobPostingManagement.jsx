@@ -7,6 +7,7 @@ import Button from '../../components/common/Button';
 import Table from '../../components/common/Table';
 import Modal from '../../components/common/Modal';
 import Input from '../../components/common/Input';
+import DateDropdown from '../../components/common/DateDropdown';
 import api from '../../services/api';
 import DashboardLayout from '../../components/DashboardLayout';
 import { downloadPdfReport } from '../../utils/reportExport';
@@ -25,6 +26,7 @@ const defaultJob = {
   applicationDeadline: '',
   qualifications: [],
   evaluationParams: { keywords: [], criteria: [] },
+  numberOfPositions: 1,
 };
 
 export default function JobPostingManagement() {
@@ -35,9 +37,12 @@ export default function JobPostingManagement() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(defaultJob);
+  const [applicationDeadline, setApplicationDeadline] = useState(form.applicationDeadline ? new Date(form.applicationDeadline) : null);
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sortField, setSortField] = useState('title');
+  const [sortDirection, setSortDirection] = useState('asc');
   const [qualInput, setQualInput] = useState('');
   const [kwInput, setKwInput] = useState('');
 
@@ -106,14 +111,39 @@ export default function JobPostingManagement() {
   };
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
-  const filteredJobs = jobs.filter((row) => {
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const filteredJobs = jobs.filter((job) => {
     const matchesSearch =
-      !normalizedSearch ||
-      (row.title || '').toLowerCase().includes(normalizedSearch) ||
-      (row.location || '').toLowerCase().includes(normalizedSearch);
-    const matchesDepartment = departmentFilter === 'all' || (row.department || '') === departmentFilter;
-    const matchesStatus = statusFilter === 'all' || (row.status || '') === statusFilter;
+      !searchTerm ||
+      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.location.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesDepartment = departmentFilter === 'all' || job.department === departmentFilter;
+    const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
+
     return matchesSearch && matchesDepartment && matchesStatus;
+  }).sort((a, b) => {
+    let aVal = a[sortField];
+    let bVal = b[sortField];
+
+    if (sortField === 'applicationDeadline') {
+      aVal = aVal ? new Date(aVal).getTime() : 0;
+      bVal = bVal ? new Date(bVal).getTime() : 0;
+    } else {
+      aVal = String(aVal || '').toLowerCase();
+      bVal = String(bVal || '').toLowerCase();
+    }
+
+    const comparison = aVal.localeCompare(bVal, undefined, { numeric: true, sensitivity: 'base' });
+    return sortDirection === 'asc' ? comparison : -comparison;
   });
 
   const handleExportJobsReport = async () => {
@@ -290,11 +320,35 @@ export default function JobPostingManagement() {
           </div>
           <Table
             columns={[
-              { key: 'title', label: 'Title' },
-              { key: 'department', label: 'Department' },
-              { key: 'location', label: 'Location' },
-              { key: 'employmentType', label: 'Type' },
-              { key: 'status', label: 'Status' },
+              {
+                key: 'title',
+                label: 'Title',
+                sortable: true,
+                render: (_, row) => (
+                  <button
+                    onClick={() => navigate(`/recruitment/jobs/${row.id}`)}
+                    className="text-blue-500 hover:text-blue-700 hover:underline font-medium cursor-pointer"
+                  >
+                    {row.title}
+                  </button>
+                )
+              },
+              { key: 'department', label: 'Department', sortable: true },
+              { key: 'location', label: 'Location', sortable: true },
+              { key: 'employmentType', label: 'Type', sortable: true },
+              {
+                key: 'status',
+                label: 'Status',
+                sortable: true,
+                render: (_, row) => (
+                  <button
+                    onClick={() => setStatusFilter(row.status === statusFilter ? 'all' : row.status)}
+                    className={`px-2 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${row.status === 'open' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}
+                  >
+                    {row.status}
+                  </button>
+                )
+              },
               {
                 key: 'actions',
                 label: 'Actions',
@@ -309,6 +363,9 @@ export default function JobPostingManagement() {
             ]}
             data={filteredJobs}
             loading={loading}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSort={handleSort}
           />
         </Card>
         <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editing ? 'Edit Job' : 'Create Job'} size="3xl">
@@ -336,6 +393,32 @@ export default function JobPostingManagement() {
               </select>
             </div>
             <div className="form-group">
+              <label>Number of Positions</label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="px-3 py-1 bg-slate-200 dark:bg-slate-700 rounded hover:bg-slate-300 dark:hover:bg-slate-600"
+                  onClick={() => setForm({ ...form, numberOfPositions: Math.max(1, (form.numberOfPositions || 1) - 1) })}
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  className="form-input w-20 text-center"
+                  value={form.numberOfPositions || 1}
+                  onChange={e => setForm({ ...form, numberOfPositions: Math.max(1, parseInt(e.target.value) || 1) })}
+                  min="1"
+                />
+                <button
+                  type="button"
+                  className="px-3 py-1 bg-slate-200 dark:bg-slate-700 rounded hover:bg-slate-300 dark:hover:bg-slate-600"
+                  onClick={() => setForm({ ...form, numberOfPositions: (form.numberOfPositions || 1) + 1 })}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <div className="form-group">
               <label>Status</label>
               <select className="form-input" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
                 {jobStatuses.map(status => <option key={status} value={status}>{status}</option>)}
@@ -347,7 +430,18 @@ export default function JobPostingManagement() {
             </div>
             <div className="form-group">
               <label>Application Deadline</label>
-              <input className="form-input" type="date" value={form.applicationDeadline} onChange={e => setForm({ ...form, applicationDeadline: e.target.value })} />
+              <DateDropdown 
+                  selectedDate={applicationDeadline}
+                  onDateChange={(date) => {
+                    setApplicationDeadline(date);
+                    setForm({...form, applicationDeadline: date ? date.toISOString().split('T')[0] : ''});
+                  }}
+                  label="Application Deadline"
+                  showYear={true}
+                  showMonth={true}
+                  showDay={true}
+                  yearRange={5}
+                />
             </div>
             <div className="form-group md:col-span-2">
               <label>Description</label>

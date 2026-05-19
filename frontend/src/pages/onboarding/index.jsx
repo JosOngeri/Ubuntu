@@ -21,10 +21,13 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(true)
   const [employees, setEmployees] = useState([])
   const [showInitiate, setShowInitiate] = useState(false)
-  const [form, setForm] = useState({ employeeId: '', department: '', position: '', probationMonths: 3 })
+  const [form, setForm] = useState({ employeeId: '', department: '', position: '', probationMonths: 3, supervisorRole: '', supervisorId: '', assets: { uniform: '', tools: '' } })
   const [applications, setApplications] = useState([])
   const [selectedApplication, setSelectedApplication] = useState(null)
   const [importing, setImporting] = useState(false)
+  const [showReviewModal, setShowReviewModal] = useState(false)
+  const [reviewId, setReviewId] = useState(null)
+  const [reviewForm, setReviewForm] = useState({ score: 80, comments: '', recommendation: 'confirm' })
 
   const fetchAll = async () => {
     setLoading(true)
@@ -49,10 +52,18 @@ const initiate = async () => {
   }
 
   const addReview = async (id) => {
-    const score = prompt('Score (0-100):'), comments = prompt('Comments:')
-    if (!score) return
-    try { await api.post('/onboarding/' + id + '/review', { score: +score, comments, recommendation: 'confirm' }); toast.success('Review added'); fetchAll() }
-    catch { toast.error('Failed') }
+    setReviewId(id)
+    setReviewForm({ score: 80, comments: '', recommendation: 'confirm' })
+    setShowReviewModal(true)
+  }
+
+  const submitReview = async () => {
+    try {
+      await api.post('/onboarding/' + reviewId + '/review', { score: +reviewForm.score, comments: reviewForm.comments, recommendation: reviewForm.recommendation })
+      toast.success('Review added')
+      setShowReviewModal(false)
+      fetchAll()
+    } catch { toast.error('Failed') }
   }
 
   const generateLetter = async (id) => {
@@ -73,6 +84,22 @@ const initiate = async () => {
     }
   }
 
+  const handleApplicationSelect = async (applicationId) => {
+    setSelectedApplication(applicationId)
+    try {
+      const res = await api.get(`/jobs/applications/${applicationId}`)
+      const app = res.data
+      const positionDetails = app.positionDetails || {}
+      setForm({
+        ...form,
+        department: positionDetails.department || form.department,
+        position: positionDetails.position || form.position,
+      })
+    } catch (err) {
+      toast.error('Failed to load application details')
+    }
+  }
+
   const getDone = (o, name) => o.steps?.find(s => s.name === name)?.completed
   const inProg = onboardings.filter(o => o.status === 'in_progress').length
   const done = onboardings.filter(o => o.status === 'completed').length
@@ -83,9 +110,9 @@ return (
         <p className="page-subtitle">Track employee onboarding from offer letter to confirmation.</p>
       </div>
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <Card><div className="stat-card"><span className="stat-label">Total</span><span className="stat-value">{onboardings.length}</span></div></Card>
-        <Card><div className="stat-card"><span className="stat-label">In Progress</span><span className="stat-value text-blue-600">{inProg}</span></div></Card>
-        <Card><div className="stat-card"><span className="stat-label">Completed</span><span className="stat-value text-green-600">{done}</span></div></Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => toast.info('Showing all onboardings')}><div className="stat-card"><span className="stat-label">Total</span><span className="stat-value">{onboardings.length}</span><p className="text-xs text-blue-500 mt-1">Click to view →</p></div></Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => toast.info('Showing in-progress onboardings')}><div className="stat-card"><span className="stat-label">In Progress</span><span className="stat-value text-blue-600">{inProg}</span><p className="text-xs text-blue-500 mt-1">Click to view →</p></div></Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => toast.info('Showing completed onboardings')}><div className="stat-card"><span className="stat-label">Completed</span><span className="stat-value text-green-600">{done}</span><p className="text-xs text-blue-500 mt-1">Click to view →</p></div></Card>
       </div>
 <div className="flex gap-2 mb-4">
         <Button variant="primary" size="sm" onClick={() => setShowInitiate(!showInitiate)}>+ New Onboarding</Button>
@@ -101,12 +128,31 @@ return (
             <input className="form-input text-sm" placeholder="Department" value={form.department} onChange={e => setForm({...form, department: e.target.value})} />
             <input className="form-input text-sm" placeholder="Position" value={form.position} onChange={e => setForm({...form, position: e.target.value})} />
             <input className="form-input text-sm" placeholder="Probation Months" type="number" value={form.probationMonths} onChange={e => setForm({...form, probationMonths: +e.target.value})} />
+            <select className="form-select text-sm" value={form.supervisorRole} onChange={e => setForm({...form, supervisorRole: e.target.value})}>
+              <option value="">Select Supervisor Role</option>
+              <option value="manager">Manager</option>
+              <option value="admin">Admin</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="hr">HR</option>
+            </select>
+            <select className="form-select text-sm" value={form.supervisorId} onChange={e => setForm({...form, supervisorId: e.target.value})}>
+              <option value="">Select Supervisor</option>
+              {employees.filter(e => e.role === form.supervisorRole).map(e => <option key={e._id} value={e._id}>{e.firstName} {e.lastName}</option>)}
+            </select>
+          </div>
+
+          <div className="mt-4 pt-4 border-t">
+            <h4 className="font-medium text-sm mb-2">Asset Allocation</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <input className="form-input text-sm" placeholder="Uniform Details" value={form.assets.uniform} onChange={e => setForm({...form, assets: {...form.assets, uniform: e.target.value}})} />
+              <input className="form-input text-sm" placeholder="Tools of Work" value={form.assets.tools} onChange={e => setForm({...form, assets: {...form.assets, tools: e.target.value}})} />
+            </div>
           </div>
           
           {form.employeeId && (
             <div className="mt-4 pt-4 border-t">
               <h4 className="font-medium text-sm mb-2">Import from Job Application (Optional)</h4>
-              <select className="form-select text-sm mb-2" value={selectedApplication || ''} onChange={e => setSelectedApplication(e.target.value)}>
+              <select className="form-select text-sm mb-2" value={selectedApplication || ''} onChange={e => handleApplicationSelect(e.target.value)}>
                 <option value="">Select Application</option>
                 {applications.filter(a => a.applicantEmail === employees.find(e => e._id === form.employeeId)?.email).map(a => (
                   <option key={a.id} value={a.id}>{a.applicantName} - {a.jobId?.title || 'Unknown Position'}</option>
@@ -127,7 +173,7 @@ return (
           
           <div className="flex gap-2 mt-3">
             <Button variant="primary" size="sm" onClick={initiate}>Start</Button>
-            <Button variant="outline" size="sm" onClick={() => { setShowInitiate(false); setSelectedApplication(null); setForm({ employeeId: '', department: '', position: '', probationMonths: 3 }) }}>Cancel</Button>
+            <Button variant="outline" size="sm" onClick={() => { setShowInitiate(false); setSelectedApplication(null); setForm({ employeeId: '', department: '', position: '', probationMonths: 3, supervisorRole: '', supervisorId: '', assets: { uniform: '', tools: '' } }) }}>Cancel</Button>
           </div>
         </Card>
       )}
@@ -161,6 +207,50 @@ return (
           )
         })}
       </div>}
+
+      {showReviewModal && (
+        <Modal title="Probation Review" onClose={() => setShowReviewModal(false)}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Score (0-100)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                className="form-input w-full"
+                value={reviewForm.score}
+                onChange={e => setReviewForm({...reviewForm, score: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Recommendation</label>
+              <select
+                className="form-select w-full"
+                value={reviewForm.recommendation}
+                onChange={e => setReviewForm({...reviewForm, recommendation: e.target.value})}
+              >
+                <option value="confirm">Confirm Employment</option>
+                <option value="extend">Extend Probation</option>
+                <option value="terminate">Terminate Employment</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Comments</label>
+              <textarea
+                className="form-input w-full"
+                rows="3"
+                value={reviewForm.comments}
+                onChange={e => setReviewForm({...reviewForm, comments: e.target.value})}
+                placeholder="Provide feedback on performance..."
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowReviewModal(false)}>Cancel</Button>
+              <Button variant="primary" onClick={submitReview}>Submit Review</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </DashboardLayout>
   )
 }

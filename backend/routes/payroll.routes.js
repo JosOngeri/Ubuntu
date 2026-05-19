@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const payrollController = require('../controllers/payroll.controller');
 
+router.post('/batch-generate', payrollController.batchGeneratePayroll);
 router.post('/calculate', payrollController.calculatePayroll);
 router.get('/calculate/:period', payrollController.calculatePayroll);
 router.put('/approve/:id', payrollController.approvePayroll);

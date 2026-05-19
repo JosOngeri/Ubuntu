@@ -6,6 +6,7 @@ import Table from '../../components/common/Table'
 import Button from '../../components/common/Button'
 import Input from '../../components/common/Input'
 import Modal from '../../components/common/Modal'
+import DateDropdown from '../../components/common/DateDropdown'
 import { attendanceAPI, employeeAPI } from '../../services/api'
 import { useAuth } from '../../contexts/AuthContext'
 import { toast } from 'react-toastify'
@@ -50,7 +51,9 @@ const Attendance = ({ role = 'employee' }) => {
   const [selectedEmployee, setSelectedEmployee] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [dateFilter, setDateFilter] = useState(location.state?.filterDate || '')
+  const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0])
+  const [dateFilterState, setDateFilterState] = useState(new Date())
+  const [attendanceDate, setAttendanceDate] = useState(null)
   const [biometricDeviceId, setBiometricDeviceId] = useState(localStorage.getItem('biometricDeviceId') || 'BIO-001')
   const [employees, setEmployees] = useState([])
   const [employeeProfile, setEmployeeProfile] = useState(null)
@@ -209,6 +212,7 @@ const Attendance = ({ role = 'employee' }) => {
       breakIn: toLocalInput(row.breakIn),
       checkOut: toLocalInput(row.checkOut),
     })
+    setAttendanceDate(row.attendanceDate ? new Date(row.attendanceDate) : null)
     setShowAdjustModal(true)
   }
 
@@ -430,7 +434,18 @@ const Attendance = ({ role = 'employee' }) => {
           </div>
           <div className="flex flex-col gap-1 min-w-[180px]">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Date</label>
-            <input type="date" className="form-select" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
+            <DateDropdown 
+                  selectedDate={dateFilterState}
+                  onDateChange={(date) => {
+                    setDateFilterState(date);
+                    setDateFilter(date ? date.toISOString().split('T')[0] : '');
+                  }}
+                  label="Filter by Date"
+                  showYear={true}
+                  showMonth={true}
+                  showDay={true}
+                  yearRange={5}
+                />
           </div>
           {dateFilter && (
             <button className="text-xs text-blue-500 underline mt-4" onClick={() => setDateFilter('')}>Clear date</button>
@@ -495,11 +510,17 @@ const Attendance = ({ role = 'employee' }) => {
         <Modal isOpen={showAdjustModal} onClose={() => setShowAdjustModal(false)} title="Adjust Attendance">
           <form onSubmit={handleAdjustmentSave} className="space-y-4">
             <div className="form-row">
-              <Input
+              <DateDropdown
+                selectedDate={attendanceDate}
+                onDateChange={(date) => {
+                  setAttendanceDate(date);
+                  setAdjustData({ ...adjustData, attendanceDate: date ? date.toISOString().split('T')[0] : '' });
+                }}
                 label="Attendance Date"
-                type="date"
-                value={adjustData.attendanceDate}
-                onChange={(e) => setAdjustData({ ...adjustData, attendanceDate: e.target.value })}
+                showYear={true}
+                showMonth={true}
+                showDay={true}
+                yearRange={5}
               />
               <div className="form-group">
                 <label>Status</label>

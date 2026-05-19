@@ -5,6 +5,7 @@ import DashboardLayout from '../../components/DashboardLayout'
 import Button from '../../components/common/Button'
 import Input from '../../components/common/Input'
 import Table from '../../components/common/Table'
+import DateDropdown from '../../components/common/DateDropdown'
 import { toast } from 'react-toastify'
 import { downloadPdfReport } from '../../utils/reportExport'
 
@@ -19,6 +20,8 @@ const ManagerLeaves = () => {
   const [activeTab, setActiveTab] = useState('approvals') // 'approvals', 'all', 'request'
   const [statusFilter, setStatusFilter] = useState('all')
   const [searchEmployee, setSearchEmployee] = useState('')
+  const [sortField, setSortField] = useState('startDate')
+  const [sortDirection, setSortDirection] = useState('desc')
   
   const [requestForm, setRequestForm] = useState({
     type: 'annual',
@@ -27,6 +30,8 @@ const ManagerLeaves = () => {
     reason: '',
     attachment: null
   })
+  const [startDate, setStartDate] = useState(null)
+  const [endDate, setEndDate] = useState(null)
 
   useEffect(() => {
     fetchInitialData()
@@ -122,14 +127,43 @@ const ManagerLeaves = () => {
     return emp ? `${emp.firstName || ''} ${emp.lastName || ''}`.trim() : empId
   }
 
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   const filteredAllLeaves = useMemo(() => {
-    return allLeaves.filter(leave => {
+    let filtered = allLeaves.filter(leave => {
       const empName = String(getEmployeeName(leave.employee_id)).toLowerCase()
       const matchName = empName.includes(searchEmployee.toLowerCase()) || String(leave.employee_id).includes(searchEmployee)
       const matchStatus = statusFilter === 'all' || leave.status === statusFilter
       return matchName && matchStatus
-    })
-  }, [allLeaves, searchEmployee, statusFilter, employees])
+    });
+
+    return filtered.sort((a, b) => {
+      let aVal = a[sortField];
+      let bVal = b[sortField];
+      
+      if (sortField === 'employee') {
+        aVal = getEmployeeName(a.employee_id);
+        bVal = getEmployeeName(b.employee_id);
+      } else if (sortField === 'start_date' || sortField === 'end_date') {
+        aVal = aVal ? new Date(aVal).getTime() : 0;
+        bVal = bVal ? new Date(bVal).getTime() : 0;
+      } else {
+        aVal = String(aVal || '').toLowerCase();
+        bVal = String(bVal || '').toLowerCase();
+      }
+      
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [allLeaves, searchEmployee, statusFilter, employees, sortField, sortDirection])
 
   const getDepartmentWarning = (leave) => {
     if (leave.type === 'annual' && leave.department_conflict_count > 0) {
@@ -171,11 +205,11 @@ const ManagerLeaves = () => {
   }
 
   const allLeavesColumns = [
-    { key: 'employee', label: 'Employee', render: (_, row) => getEmployeeName(row.employee_id) },
-    { key: 'type', label: 'Type', render: (_, row) => row.type.charAt(0).toUpperCase() + row.type.slice(1) },
-    { key: 'start_date', label: 'Start Date', render: (date) => new Date(date).toLocaleDateString() },
-    { key: 'end_date', label: 'End Date', render: (date) => new Date(date).toLocaleDateString() },
-    { key: 'status', label: 'Status', render: (_, row) => (
+    { key: 'employee', label: 'Employee', sortable: true, render: (_, row) => getEmployeeName(row.employee_id) },
+    { key: 'type', label: 'Type', sortable: true, render: (_, row) => row.type.charAt(0).toUpperCase() + row.type.slice(1) },
+    { key: 'start_date', label: 'Start Date', sortable: true, render: (date) => new Date(date).toLocaleDateString() },
+    { key: 'end_date', label: 'End Date', sortable: true, render: (date) => new Date(date).toLocaleDateString() },
+    { key: 'status', label: 'Status', sortable: true, render: (_, row) => (
         <span className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusBadgeColor(row.status)}`}>
           {row.status?.replace(/_/g, ' ')}
         </span>
@@ -364,7 +398,7 @@ const ManagerLeaves = () => {
               Export Report
             </Button>
           </div>
-          <Table columns={allLeavesColumns} data={filteredAllLeaves} loading={loading} />
+          <Table columns={allLeavesColumns} data={filteredAllLeaves} loading={loading} sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
         </Card>
       )}
 
@@ -389,19 +423,29 @@ const ManagerLeaves = () => {
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Input
+                <DateDropdown
+                  selectedDate={startDate}
+                  onDateChange={(date) => {
+                    setStartDate(date);
+                    setRequestForm({...requestForm, startDate: date ? date.toISOString().split('T')[0] : ''});
+                  }}
                   label="Start Date"
-                  type="date"
-                  value={requestForm.startDate}
-                  onChange={(e) => setRequestForm({ ...requestForm, startDate: e.target.value })}
-                  required
+                  showYear={true}
+                  showMonth={true}
+                  showDay={true}
+                  yearRange={2}
                 />
-                <Input
+                <DateDropdown
+                  selectedDate={endDate}
+                  onDateChange={(date) => {
+                    setEndDate(date);
+                    setRequestForm({...requestForm, endDate: date ? date.toISOString().split('T')[0] : ''});
+                  }}
                   label="End Date"
-                  type="date"
-                  value={requestForm.endDate}
-                  onChange={(e) => setRequestForm({ ...requestForm, endDate: e.target.value })}
-                  required
+                  showYear={true}
+                  showMonth={true}
+                  showDay={true}
+                  yearRange={2}
                 />
               </div>
               <div className="form-group">

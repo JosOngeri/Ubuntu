@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
+import Modal from '../../components/common/Modal';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
 import { BsArrowLeft, BsBriefcase, BsGeoAlt, BsClock, BsCalendarEvent, BsTag, BsFileEarmarkText } from 'react-icons/bs';
@@ -12,6 +13,8 @@ export default function JobDetail() {
   const navigate = useNavigate();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showExtendModal, setShowExtendModal] = useState(false);
+  const [newDeadline, setNewDeadline] = useState('');
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -45,6 +48,19 @@ export default function JobDetail() {
 
   const handleViewApplicants = () => {
     navigate(`/recruitment/jobs/${jobId}/applicants`);
+  };
+
+  const handleExtendDeadline = async () => {
+    try {
+      await api.put(`/jobs/${jobId}/extend-deadline`, { newDeadline });
+      toast.success('Application deadline extended successfully');
+      setShowExtendModal(false);
+      setNewDeadline('');
+      const res = await api.get(`/jobs/${jobId}`);
+      setJob(res.data);
+    } catch (err) {
+      toast.error('Failed to extend deadline');
+    }
   };
 
   if (loading) {
@@ -144,10 +160,15 @@ export default function JobDetail() {
                 <BsCalendarEvent size={14} />
                 Application Deadline
               </label>
-              <p className={`text-lg font-semibold mt-1 ${isDeadlinePassed ? 'text-red-600' : ''}`}>
-                {job.applicationDeadline ? new Date(job.applicationDeadline).toLocaleDateString() : 'N/A'}
-                {isDeadlinePassed && <span className="text-red-600 text-sm ml-2">(Passed)</span>}
-              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className={`text-lg font-semibold ${isDeadlinePassed ? 'text-red-600' : ''}`}>
+                  {job.applicationDeadline ? new Date(job.applicationDeadline).toLocaleDateString() : 'N/A'}
+                  {isDeadlinePassed && <span className="text-red-600 text-sm ml-2">(Passed)</span>}
+                </p>
+                <Button size="xs" variant="outline" onClick={() => { setShowExtendModal(true); setNewDeadline(job.applicationDeadline || ''); }}>
+                  Extend
+                </Button>
+              </div>
             </div>
 
             {/* Posted At */}
@@ -228,6 +249,29 @@ export default function JobDetail() {
             </Button>
           </div>
         </Card>
+
+        <Modal isOpen={showExtendModal} onClose={() => setShowExtendModal(false)} title="Extend Application Deadline">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Current Deadline</label>
+              <p className="text-slate-600">{job.applicationDeadline ? new Date(job.applicationDeadline).toLocaleDateString() : 'Not set'}</p>
+            </div>
+            <div className="form-group">
+              <label>New Deadline</label>
+              <input
+                type="date"
+                className="form-input"
+                value={newDeadline}
+                onChange={(e) => setNewDeadline(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="primary" onClick={handleExtendDeadline}>Extend Deadline</Button>
+              <Button variant="outline" onClick={() => setShowExtendModal(false)}>Cancel</Button>
+            </div>
+          </div>
+        </Modal>
       </div>
     </DashboardLayout>
   );

@@ -3,19 +3,6 @@ import { toast } from 'react-toastify'
 import DashboardLayout from '../../components/DashboardLayout'
 import { contractorAPI } from '../../services/api'
 
-const STORAGE_KEY = 'ubuntu-contractor-milestones'
-
-const readMilestones = () => {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-  } catch {
-    return []
-  }
-}
-
-const saveMilestones = (items) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
-}
 
 export default function ContractorPortal() {
   const [stats, setStats] = useState({ activeProjects: 0, pendingInvoices: 0, deliveryRate: 0 })
@@ -29,15 +16,16 @@ export default function ContractorPortal() {
     const load = async () => {
       try {
         setLoading(true)
-        const [statsResponse, projectsResponse, invoicesResponse] = await Promise.all([
+        const [statsResponse, projectsResponse, invoicesResponse, milestonesResponse] = await Promise.all([
           contractorAPI.getStats(),
           contractorAPI.getProjects(),
           contractorAPI.getInvoices(),
+          contractorAPI.getMilestones ? contractorAPI.getMilestones() : Promise.resolve({ data: [] }),
         ])
         setStats(statsResponse.data || { activeProjects: 0, pendingInvoices: 0, deliveryRate: 0 })
         setProjects(projectsResponse.data || [])
         setInvoices(invoicesResponse.data || [])
-        setMilestones(readMilestones())
+        setMilestones(milestonesResponse.data || [])
       } catch (loadError) {
         console.error('Failed to load contractor portal data', loadError)
         toast.error('Failed to load contractor portal data')
@@ -56,27 +44,32 @@ export default function ContractorPortal() {
     setForm((current) => ({ ...current, [name]: files ? files[0] : value }))
   }
 
-  const submitMilestone = (event) => {
+  const submitMilestone = async (event) => {
     event.preventDefault()
     if (!form.description || !form.proof) {
       toast.error('Add a milestone description and supporting proof/invoice')
       return
     }
 
-    const entry = {
-      id: `milestone-${Date.now()}`,
-      description: form.description,
-      proofName: form.proof.name,
-      projectName: activeContracts[0]?.name || 'General Contract',
-      status: 'Submitted',
-      createdAt: new Date().toISOString(),
+    try {
+      const payload = {
+        title: activeContracts[0]?.name || 'General Milestone',
+        description: form.description,
+        quoteId: activeContracts[0]?.quoteId || null,
+        budget: 0,
+        photos: [form.proof.name],
+      }
+      const res = await contractorAPI.submitMilestone
+        ? await contractorAPI.submitMilestone(payload)
+        : await (await import('../../services/api')).default.post('/contractor-lifecycle/milestones', payload)
+      
+      setMilestones(prev => [res.data || { ...payload, id: Date.now(), status: 'Submitted', createdAt: new Date().toISOString(), proofName: form.proof.name, projectName: payload.title }, ...prev])
+      setForm({ description: '', proof: null })
+      toast.success('Milestone submitted to database')
+    } catch (err) {
+      console.error('Milestone submit error:', err)
+      toast.error('Failed to submit milestone')
     }
-
-    const nextMilestones = [entry, ...readMilestones()]
-    saveMilestones(nextMilestones)
-    setMilestones(nextMilestones)
-    setForm({ description: '', proof: null })
-    toast.success('Milestone submitted')
   }
 
   return (
@@ -173,7 +166,7 @@ export default function ContractorPortal() {
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Submitted Milestones</h2>
-              <div className="text-xs text-slate-500 dark:text-slate-400">Stored locally for the review workflow</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Synced with the system database</div>
             </div>
             <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {milestones.length === 0 ? (

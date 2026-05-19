@@ -5,20 +5,94 @@ import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Table from '../../components/common/Table';
 import Modal from '../../components/common/Modal';
+import DateDropdown from '../../components/common/DateDropdown';
 import api, { employeeAPI } from '../../services/api';
 import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const formatMoney = (value) => new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(Number(value || 0))
 
 export default function Payroll() {
   const navigate = useNavigate();
+  const { state } = useLocation();
   const [payslips, setPayslips] = useState([]);
+  const [filteredPayslips, setFilteredPayslips] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [form, setForm] = useState({ employeeId: '', period: new Date().toISOString().slice(0, 7) });
   const [viewPayslip, setViewPayslip] = useState(null);
+  
+  // Filter states
+  const [filters, setFilters] = useState({
+    employeeType: state?.filterType || '',
+    status: state?.filterStatus || '',
+    period: '',
+    search: ''
+  });
+  const [selectedPeriodDate, setSelectedPeriodDate] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: 'period', direction: 'desc' });
+
+  const applyFiltersAndSort = (payslips) => {
+    let filtered = [...payslips];
+    
+    // Apply filters
+    if (filters.employeeType) {
+      filtered = filtered.filter(payslip => {
+        const employee = employees.find(emp => emp.id === payslip.employee_id);
+        if (!employee) return false;
+        
+        switch (filters.employeeType) {
+          case 'daily_worker':
+            return employee.employment_type === 'Daily Worker';
+          case 'monthly_employee':
+            return employee.employment_type === 'Monthly';
+          case 'contractor':
+            return employee.employment_type === 'Contractor';
+          default:
+            return true;
+        }
+      });
+    }
+    
+    if (filters.status) {
+      filtered = filtered.filter(payslip => payslip.status === filters.status);
+    }
+    
+    if (filters.period) {
+      filtered = filtered.filter(payslip => payslip.period === filters.period);
+    }
+    
+    if (filters.search) {
+      filtered = filtered.filter(payslip => {
+        const employee = employees.find(emp => emp.id === payslip.employee_id);
+        const employeeName = employee ? `${employee.first_name} ${employee.last_name}`.toLowerCase() : '';
+        return employeeName.includes(filters.search.toLowerCase()) ||
+               payslip.period.toLowerCase().includes(filters.search.toLowerCase());
+      });
+    }
+    
+    // Apply sorting
+    if (sortConfig.key) {
+      filtered.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+        
+        if (sortConfig.key === 'employee') {
+          const empA = employees.find(emp => emp.id === a.employee_id);
+          const empB = employees.find(emp => emp.id === b.employee_id);
+          aValue = empA ? `${empA.first_name} ${empA.last_name}` : '';
+          bValue = empB ? `${empB.first_name} ${empB.last_name}` : '';
+        }
+        
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    
+    setFilteredPayslips(filtered);
+  };
 
   const loadData = async () => {
     try {
@@ -30,10 +104,22 @@ export default function Payroll() {
       setEmployees(empRes.data || []);
       setPayslips(payRes.data || []);
     } catch (err) {
-      toast.error('Failed to load payroll data');
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    if (payslips.length > 0 && employees.length > 0) {
+      applyFiltersAndSort(payslips);
+    }
+  }, [payslips, employees, filters, sortConfig]);
+
+  const handlePeriodDateChange = (date) => {
+    setSelectedPeriodDate(date);
+    const periodString = date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}` : '';
+    setFilters({...filters, period: periodString});
   };
 
   useEffect(() => {
@@ -55,6 +141,21 @@ export default function Payroll() {
     }
   };
 
+  const handleBatchGenerate = async () => {
+    const period = new Date().toISOString().slice(0, 7);
+    if (!confirm(`Generate draft payslips for all monthly employees for period ${period}?`)) return;
+    try {
+      setGenerating(true);
+      const res = await api.post('/api/payroll/batch-generate', { period });
+      toast.success(`Generated ${res.data.generated} draft payslips, skipped ${res.data.skipped}`);
+      loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Batch generation failed');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const handleApprove = async (id) => {
     try {
       await api.put(`/api/payroll/approve/${id}`);
@@ -65,14 +166,47 @@ export default function Payroll() {
     }
   };
 
+  const handleSort = (field) => {
+    setSortConfig(prev => ({
+      key: field,
+      direction: prev.key === field && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
   const columns = [
-    { key: 'employee', label: 'Employee', render: (_, row) => `${row.first_name} ${row.last_name}` },
-    { key: 'period', label: 'Period' },
-    { key: 'gross_pay', label: 'Gross Pay', render: (val) => formatMoney(val) },
-    { key: 'net_pay', label: 'Net Pay', render: (val) => formatMoney(val) },
-    { key: 'status', label: 'Status', render: (status) => (
-      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${status === 'Draft' ? 'bg-slate-200 text-slate-800' : status === 'Approved' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>{status}</span>
-    )},
+    {
+      key: 'employee',
+      label: 'Employee',
+      sortable: true,
+      render: (_, row) => {
+        const empId = row.employee_id || row.id;
+        const empName = `${row.first_name} ${row.last_name}`;
+        return (
+          <button
+            onClick={() => navigate(`/admin/employees/${empId}`)}
+            className="text-blue-500 hover:text-blue-700 hover:underline font-medium cursor-pointer"
+          >
+            {empName}
+          </button>
+        );
+      }
+    },
+    { key: 'period', label: 'Period', sortable: true },
+    { key: 'gross_pay', label: 'Gross Pay', sortable: true, render: (val) => formatMoney(val) },
+    { key: 'net_pay', label: 'Net Pay', sortable: true, render: (val) => formatMoney(val) },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      render: (status) => (
+        <button
+          onClick={() => setFilters({...filters, status: status === filters.status ? '' : status})}
+          className={`px-2 py-1 rounded-full text-xs font-semibold cursor-pointer hover:opacity-80 transition-opacity ${status === 'Draft' ? 'bg-slate-200 text-slate-800' : status === 'Approved' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}
+        >
+          {status}
+        </button>
+      )
+    },
     { key: 'actions', label: 'Actions', render: (_, row) => (
       <div className="flex gap-2 items-center">
         <Button size="sm" variant="outline" onClick={() => setViewPayslip(row)}>View</Button>
@@ -119,9 +253,67 @@ export default function Payroll() {
               <h2 className="text-lg font-bold">Drafts & History</h2>
               <p className="text-sm text-slate-500">Review calculated drafts before approving.</p>
             </div>
-            <Button variant="outline" onClick={() => navigate('/payroll/disburse')}>Proceed to Disbursement →</Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={handleBatchGenerate} loading={generating}>Batch Generate</Button>
+              <Button variant="outline" onClick={() => navigate('/payroll/disburse')}>Proceed to Disbursement →</Button>
+            </div>
           </div>
-          <Table columns={columns} data={payslips} loading={loading} />
+          
+          {/* Filter Headers */}
+          <div className="bg-gray-50 p-4 rounded-lg mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Employee Type</label>
+                <select 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={filters.employeeType}
+                  onChange={(e) => setFilters({...filters, employeeType: e.target.value})}
+                >
+                  <option value="">All Types</option>
+                  <option value="daily_worker">Daily Workers</option>
+                  <option value="monthly_employee">Monthly Employees</option>
+                  <option value="contractor">Contractors</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={filters.status}
+                  onChange={(e) => setFilters({...filters, status: e.target.value})}
+                >
+                  <option value="">All Status</option>
+                  <option value="Draft">Draft</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Paid">Paid</option>
+                </select>
+              </div>
+              
+              <DateDropdown 
+                selectedDate={selectedPeriodDate}
+                onDateChange={handlePeriodDateChange}
+                label="Period"
+                showYear={true}
+                showMonth={true}
+                showDay={false}
+                yearRange={10}
+              />
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                <input 
+                  type="text"
+                  placeholder="Search employee..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={filters.search}
+                  onChange={(e) => setFilters({...filters, search: e.target.value})}
+                />
+              </div>
+            </div>
+          </div>
+          
+          <Table columns={columns} data={filteredPayslips} loading={loading} sortField={sortConfig.key} sortDirection={sortConfig.direction} onSort={handleSort} />
         </Card>
       </div>
 

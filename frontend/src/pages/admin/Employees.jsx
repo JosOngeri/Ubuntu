@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BsPlus, BsTrash, BsPencil, BsSearch } from 'react-icons/bs'
+import { BsPlus, BsTrash, BsPencil, BsSearch, BsPerson } from 'react-icons/bs'
 import DashboardLayout from '../../components/DashboardLayout'
 import Card from '../../components/common/Card'
 import Button from '../../components/common/Button'
@@ -24,6 +24,8 @@ const Employees = () => {
   const [departmentFilter, setDepartmentFilter] = useState('all')
   const [employmentTypeFilter, setEmploymentTypeFilter] = useState('all')
   const [roleFilter, setRoleFilter] = useState('all')
+  const [sortField, setSortField] = useState('firstName')
+  const [sortDirection, setSortDirection] = useState('asc')
   const [changingRoleFor, setChangingRoleFor] = useState(null)
   const [newRole, setNewRole] = useState('employee')
   const [users, setUsers] = useState([])
@@ -182,6 +184,15 @@ const Employees = () => {
   const departmentOptions = [...new Set(employees.map((emp) => emp.department).filter(Boolean))]
   const employmentTypeOptions = [...new Set(employees.map((emp) => emp.employmentType).filter(Boolean))]
 
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
   const filteredEmployees = employees.filter((emp) => {
     const matchesSearch =
       !normalizedSearch ||
@@ -195,6 +206,11 @@ const Employees = () => {
     const matchesRole = roleFilter === 'all' || (linkedUser?.role || '').toLowerCase() === roleFilter
 
     return matchesSearch && matchesDepartment && matchesEmploymentType && matchesRole
+  }).sort((a, b) => {
+    const aVal = a[sortField] || ''
+    const bVal = b[sortField] || ''
+    const comparison = String(aVal).localeCompare(String(bVal), undefined, { numeric: true, sensitivity: 'base' })
+    return sortDirection === 'asc' ? comparison : -comparison
   })
 
   const handleExportEmployeesReport = async () => {
@@ -220,26 +236,32 @@ const Employees = () => {
   }
 
   const columns = [
-    { key: 'firstName', label: 'First Name' },
-    { key: 'lastName', label: 'Last Name' },
-    { key: 'email', label: 'Email' },
-    { key: 'phone', label: 'Phone' },
-    { key: 'department', label: 'Department' },
-    { key: 'employmentType', label: 'Type' },
-    {
-      key: 'role',
-      label: 'Role',
+    { 
+      key: 'name', 
+      label: 'Name', 
+      sortable: true,
+      render: (_, row) => (
+        <button
+          onClick={() => navigate(`/admin/employee-profile/${row.id || row._id}`)}
+          className="text-blue-500 hover:text-blue-700 hover:underline font-medium flex items-center gap-2"
+        >
+          <BsPerson size={14} />
+          {[row.firstName, row.lastName].filter(Boolean).join(' ') || row.email || `Employee ${row.id}`}
+        </button>
+      )
+    },
+    { key: 'email', label: 'Email', sortable: true },
+    { key: 'phone', label: 'Phone', sortable: true },
+    { key: 'department', label: 'Department', sortable: true },
+    { 
+      key: 'role', 
+      label: 'Role', 
+      sortable: true,
       render: (_, row) => {
         const linkedUser = getUserForEmployee(row)
-        if (!linkedUser) return <span className="text-slate-400 text-xs">No account</span>
-        return (
+        return linkedUser ? (
           <div className="flex items-center gap-2">
-            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-              linkedUser.role === 'admin' ? 'bg-red-100 text-red-700' :
-              linkedUser.role === 'manager' ? 'bg-blue-100 text-blue-700' :
-              linkedUser.role === 'supervisor' ? 'bg-purple-100 text-purple-700' :
-              'bg-slate-100 text-slate-600'
-            }`}>{linkedUser.role}</span>
+            <span className="capitalize">{linkedUser.role}</span>
             {canManageEmployees && (
               <button
                 className="text-xs text-blue-500 hover:underline"
@@ -247,9 +269,10 @@ const Employees = () => {
               >change</button>
             )}
           </div>
-        )
+        ) : '-'
       }
     },
+    { key: 'status', label: 'Status', sortable: true },
     {
       key: 'id',
       label: 'Actions',
@@ -258,7 +281,7 @@ const Employees = () => {
 
         return (
           <div className="flex gap-2">
-            <Button size="sm" variant="primary" onClick={() => navigate(`/admin/employees/${rowId}`)}>View Details</Button>
+            <Button size="sm" variant="primary" onClick={() => navigate(`/admin/employee-profile/${rowId}`)}>View Details</Button>
             {canManageEmployees && (
               <button className="btn-icon edit" onClick={() => openEditModal(row)} title="Edit">
                 <BsPencil size={16} />
@@ -331,7 +354,7 @@ const Employees = () => {
           )}
         </div>
 
-        <Table columns={columns} data={filteredEmployees} loading={loading} />
+        <Table columns={columns} data={filteredEmployees} loading={loading} sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
       </Card>
 
       <Modal

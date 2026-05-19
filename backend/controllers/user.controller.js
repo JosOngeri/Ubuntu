@@ -87,6 +87,30 @@ const assignRole = async (req, res) => {
   }
 };
 
+// Get user preferences
+const getPreferences = async (req, res) => {
+  try {
+    const user = await User.findById(req.user?.id || req.params.id);
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+    res.json(user.preferences || { darkMode: false, notifications: true, language: 'en' });
+  } catch (err) {
+    res.status(500).send('Server error');
+  }
+};
+
+// Update user preferences
+const updatePreferences = async (req, res) => {
+  try {
+    const user = await User.findById(req.user?.id || req.params.id);
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+    user.preferences = { ...(user.preferences || {}), ...req.body };
+    await user.save();
+    res.json({ msg: 'Preferences updated', preferences: user.preferences });
+  } catch (err) {
+    res.status(500).send('Server error');
+  }
+};
+
 module.exports = {
   getUsers,
   getUserById,
@@ -94,4 +118,6 @@ module.exports = {
   updateUser,
   deleteUser,
   assignRole,
+  getPreferences,
+  updatePreferences,
 };

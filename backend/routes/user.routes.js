@@ -8,6 +8,8 @@ const {
   updateUser,
   deleteUser,
   assignRole,
+  getPreferences,
+  updatePreferences,
 } = require('../controllers/user.controller');
 
 const router = express.Router();
@@ -24,5 +26,9 @@ router.put('/:id', auth, roleMiddleware(['admin', 'hr']), updateUser);
 router.delete('/:id', auth, roleMiddleware(['admin']), deleteUser);
 // Assign role/permissions (admin)
 router.post('/:id/role', auth, roleMiddleware(['admin']), assignRole);
+// Get user preferences (authenticated users)
+router.get('/me/preferences', auth, getPreferences);
+// Update user preferences (authenticated users)
+router.put('/me/preferences', auth, updatePreferences);
 
 module.exports = router;

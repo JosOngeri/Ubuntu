@@ -3,6 +3,7 @@ import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Modal from '../../components/common/Modal';
+import DateDropdown from '../../components/common/DateDropdown';
 
 import api from '../../services/api';
 import { toast } from 'react-toastify';
@@ -86,6 +87,8 @@ const normalizeProfile = (raw = {}) => ({
 export default function ProfileUpdateForm() {
   const { refreshPortalProfile } = useAuth();
   const [form, setForm] = useState(defaultProfile);
+  const [dateOfBirth, setDateOfBirth] = useState(form.dateOfBirth ? new Date(form.dateOfBirth) : null);
+  const [dateOfJoining, setDateOfJoining] = useState(form.dateOfJoining ? new Date(form.dateOfJoining) : null);
   const [loading, setLoading] = useState(true);
   const [showSuccess, setShowSuccess] = useState(false);
   const [savingPortal, setSavingPortal] = useState(false);
@@ -175,7 +178,18 @@ export default function ProfileUpdateForm() {
                 <Input label="Email" name="email" value={form.email} onChange={handleChange} required />
                 <Input label="Phone" name="phone" value={form.phone} onChange={handleChange} />
                 <Input label="Address" name="address" value={form.address} onChange={handleChange} />
-                <Input label="Date of Birth" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
+                <DateDropdown 
+                  selectedDate={dateOfBirth}
+                  onDateChange={(date) => {
+                    setDateOfBirth(date);
+                    setForm({...form, dateOfBirth: date ? date.toISOString().split('T')[0] : ''});
+                  }}
+                  label="Date of Birth"
+                  showYear={true}
+                  showMonth={true}
+                  showDay={true}
+                  yearRange={50}
+                />
                 <Input label="National ID/Passport" name="nationalId" value={form.nationalId} onChange={handleChange} />
                 <Input label="Professional Headline" name="professionalHeadline" value={form.professionalHeadline} onChange={handleChange} />
                 <Input label="Profile Photo URL" name="photoUrl" value={form.photoUrl} onChange={handleChange} />
@@ -204,7 +218,18 @@ export default function ProfileUpdateForm() {
                 <Input label="Job Title" name="jobTitle" value={form.jobTitle} onChange={handleChange} />
                 <Input label="Department" name="department" value={form.department} onChange={handleChange} />
                 <Input label="Status" name="status" value={form.status} onChange={handleChange} />
-                <Input label="Date of Joining" name="dateOfJoining" type="date" value={form.dateOfJoining} onChange={handleChange} />
+                <DateDropdown 
+                  selectedDate={dateOfJoining}
+                  onDateChange={(date) => {
+                    setDateOfJoining(date);
+                    setForm({...form, dateOfJoining: date ? date.toISOString().split('T')[0] : ''});
+                  }}
+                  label="Date of Joining"
+                  showYear={true}
+                  showMonth={true}
+                  showDay={true}
+                  yearRange={20}
+                />
                 <Input label="Employment Type" name="employmentType" value={form.employmentType} onChange={handleChange} />
                 <Input label="Work Location" name="workLocation" value={form.workLocation} onChange={handleChange} />
                 <Input label="Reporting Manager" name="reportingManager" value={form.reportingManager} onChange={handleChange} />
