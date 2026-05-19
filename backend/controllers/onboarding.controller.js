@@ -1,6 +1,10 @@
 const Onboarding = require('../models/Onboarding.model');
 const Employee = require('../models/Employee.model');
 const Asset = require('../models/Asset.model');
+const User = require('../models/User.model');
+const bcrypt = require('bcrypt');
+const { sendEmail } = require('../utils/email');
+const crypto = require('crypto');
 
 const populateEmployee = async (onboarding) => {
   if (!onboarding.employeeId) return onboarding;
@@ -87,6 +91,48 @@ exports.completeStep = async (req, res) => {
       onboarding.confirmedAt = new Date();
       onboarding.confirmedBy = req.user.id;
       await Employee.findByIdAndUpdate(onboarding.employeeId, { status: 'Active', employmentType: 'Permanent' });
+
+      // Create user account
+      const employee = await Employee.findById(onboarding.employeeId);
+      if (employee && !employee.userId) {
+        const username = `${employee.firstName.toLowerCase()}.${employee.lastName.toLowerCase()}`;
+        const tempPassword = crypto.randomBytes(12).toString('hex');
+        const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+        let user = await User.findOne({ username });
+        if (user) {
+          // Add number to make username unique
+          let counter = 1;
+          while (await User.findOne({ username: `${username}${counter}` })) {
+            counter++;
+          }
+          user = await User.create({
+            username: `${username}${counter}`,
+            password: hashedPassword,
+            email: employee.email,
+            role: 'employee',
+          });
+        } else {
+          user = await User.create({
+            username,
+            password: hashedPassword,
+            email: employee.email,
+            role: 'employee',
+          });
+        }
+
+        // Update employee with user ID
+        await Employee.findByIdAndUpdate(onboarding.employeeId, { userId: user._id });
+
+        // Send email with login credentials
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5177';
+        await sendEmail({
+          to: employee.email,
+          subject: 'Welcome to Ubuntu HRMS - Your Account Credentials',
+          text: `Dear ${employee.firstName} ${employee.lastName},\n\nWelcome to Ubuntu HRMS! Your onboarding has been completed successfully.\n\nYour login credentials:\nUsername: ${user.username}\nPassword: ${tempPassword}\n\nPlease log in at ${frontendUrl} and change your password immediately.\n\nBest regards,\nUbuntu HRMS Team`,
+          html: `<p>Dear ${employee.firstName} ${employee.lastName},</p><p>Welcome to Ubuntu HRMS! Your onboarding has been completed successfully.</p><p><strong>Your login credentials:</strong></p><p>Username: ${user.username}<br>Password: ${tempPassword}</p><p>Please log in at <a href="${frontendUrl}">${frontendUrl}</a> and change your password immediately.</p><p>Best regards,<br>Ubuntu HRMS Team</p>`,
+        });
+      }
     }
     await onboarding.save();
     res.json(onboarding);

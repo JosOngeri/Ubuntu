@@ -7,6 +7,8 @@ export const userAPI = {
   update: (id, data) => api.put(`/api/users/${id}`, data),
   delete: (id) => api.delete(`/api/users/${id}`),
   assignRole: (id, role) => api.post(`/api/users/${id}/role`, { role }),
+  getPreferences: () => api.get('/api/users/me/preferences'),
+  updatePreferences: (data) => api.put('/api/users/me/preferences', data),
 };
 import axios from 'axios'
 
@@ -86,6 +88,7 @@ export const kpiAPI = {
 export const leaveAPI = {
   getAll: () => api.get('/api/leaves'),
   getBalance: (employeeId) => api.get(`/api/leaves/balance/${employeeId}`),
+  checkConflict: (employeeId, startDate, endDate) => api.get('/api/leaves/check-conflict', { params: { employeeId, startDate, endDate } }),
   requestLeave: (data) => {
     const formData = new FormData();
     Object.entries(data || {}).forEach(([key, value]) => {

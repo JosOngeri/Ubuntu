@@ -332,6 +332,26 @@ const adjustAttendance = async (req, res) => {
   }
 };
 
+const getTodayAttendance = async (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const records = await Attendance.find({
+      attendanceDate: { $gte: new Date(today), $lt: new Date(today + 'T23:59:59.999Z') }
+    }).populate('employeeId', 'firstName lastName department');
+    return res.json(records);
+  } catch (err) {
+    // Fallback to postgres if Mongo fails
+    try {
+      const { rows } = await query(
+        `SELECT * FROM attendance WHERE attendance_date::date = CURRENT_DATE`
+      );
+      return res.json(rows);
+    } catch (pgErr) {
+      return res.status(500).json({ msg: 'Failed to fetch today attendance', error: pgErr.message });
+    }
+  }
+};
+
 module.exports = {
   pushBiometric,
   manualSelfPunch,
@@ -339,4 +359,5 @@ module.exports = {
   getAttendance,
   getAttendanceById,
   adjustAttendance,
+  getTodayAttendance,
 };

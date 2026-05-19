@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import DashboardLayout from '../../components/DashboardLayout'
 import { employeeAPI, leaveAPI } from '../../services/api'
@@ -22,6 +23,7 @@ const overlaps = (left, right) => {
 }
 
 export default function LeaveApprovals() {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const { getLeaveTypes } = useSettings()
   const [leaves, setLeaves] = useState([])
@@ -158,7 +160,12 @@ export default function LeaveApprovals() {
                   {pendingLeaves.map((leave) => (
                     <tr key={leave.id} className="align-top">
                       <td className="px-4 py-4 text-slate-950 dark:text-white">
-                        {employeeNameMap[String(leave.employee_id)] || leave.employee_name || `Employee ${leave.employee_id}`}
+                        <button
+                          onClick={() => navigate(`/admin/employee-profile/${leave.employee_id}`)}
+                          className="text-blue-500 hover:text-blue-700 hover:underline font-medium"
+                        >
+                          {employeeNameMap[String(leave.employee_id)] || leave.employee_name || `Employee ${leave.employee_id}`}
+                        </button>
                       </td>
                       <td className="px-4 py-4 capitalize text-slate-700 dark:text-slate-300">{leave.type}</td>
                       <td className="px-4 py-4 text-slate-700 dark:text-slate-300">

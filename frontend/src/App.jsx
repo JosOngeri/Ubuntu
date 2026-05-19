@@ -4,6 +4,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import useScrollToTop from './hooks/useScrollToTop';
 
 // Recruitment Pages
 import JobPostingManagement from './pages/recruitment/JobPostingManagement';

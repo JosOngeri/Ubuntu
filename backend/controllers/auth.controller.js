@@ -152,13 +152,13 @@ const resetPassword = async (req, res) => {
     // Hash new password
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
-    
+
     // Clear reset token
     user.resetToken = null;
     user.resetTokenExpire = null;
     user.mustChangePassword = false;
     user.updatedAt = new Date();
-    
+
     await user.save();
 
     res.json({ msg: 'Password reset successful' });
@@ -167,4 +167,41 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { register, login, forgotPassword, resetPassword };
+// Admin Reset User Password - Admin can reset any user's password
+const adminResetPassword = async (req, res) => {
+  const { userId, newPassword } = req.body;
+  try {
+    if (!userId || !newPassword) {
+      return res.status(400).json({ msg: 'User ID and new password are required' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    user.mustChangePassword = true;
+    user.updatedAt = new Date();
+    await user.save();
+
+    // Send email notification to user
+    if (user.email) {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5177';
+      await sendEmail({
+        to: user.email,
+        subject: 'Ubuntu HRMS - Password Reset by Admin',
+        text: `Hello ${user.username},\n\nYour password has been reset by an administrator.\n\nPlease log in at ${frontendUrl} and change your password immediately.\n\nBest regards,\nUbuntu HRMS Team`,
+        html: `<p>Hello ${user.username},</p><p>Your password has been reset by an administrator.</p><p>Please log in at <a href="${frontendUrl}">${frontendUrl}</a> and change your password immediately.</p><p>Best regards,<br>Ubuntu HRMS Team</p>`,
+      });
+    }
+
+    res.json({ msg: 'Password reset successfully' });
+  } catch (err) {
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
+module.exports = { register, login, forgotPassword, resetPassword, adminResetPassword };

@@ -6,6 +6,7 @@ import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Card from '../../components/common/Card';
 import DashboardLayout from '../../components/DashboardLayout';
+import DateDropdown from '../../components/common/DateDropdown';
 import api from '../../services/api';
 
 const selectClass = 'w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-slate-900 dark:focus:border-slate-100 transition-all duration-200';
@@ -33,6 +34,7 @@ const CreateJobAdvertisement = () => {
     benefits: '',
   });
 
+  const [applicationDeadline, setApplicationDeadline] = useState(form.applicationDeadline ? new Date(form.applicationDeadline) : null);
   const [loading, setLoading] = useState(false);
   const [generatedFiles, setGeneratedFiles] = useState({ pdf: null, jpeg: null });
   const [letterheadFile, setLetterheadFile] = useState(null);
@@ -201,13 +203,17 @@ const CreateJobAdvertisement = () => {
                 </div>
 
                 <div>
-                  <Input
+                  <DateDropdown
+                    selectedDate={applicationDeadline}
+                    onDateChange={(date) => {
+                      setApplicationDeadline(date);
+                      setForm({...form, applicationDeadline: date ? date.toISOString().split('T')[0] : ''});
+                    }}
                     label="Application Deadline"
-                    name="applicationDeadline"
-                    type="date"
-                    value={form.applicationDeadline}
-                    onChange={handleChange}
-                    required
+                    showYear={true}
+                    showMonth={true}
+                    showDay={true}
+                    yearRange={5}
                   />
                 </div>
               </div>

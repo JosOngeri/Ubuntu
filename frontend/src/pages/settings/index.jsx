@@ -1,5 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import { userAPI } from '../../services/api'
+import { toast } from 'react-toastify'
 import { BsGear, BsBell, BsShield, BsPalette, BsGlobe } from 'react-icons/bs'
 
 const Settings = () => {
@@ -7,6 +9,68 @@ const Settings = () => {
   const [notifications, setNotifications] = useState(true)
   const [darkMode, setDarkMode] = useState(false)
   const [language, setLanguage] = useState('en')
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    loadPreferences()
+    loadDarkMode()
+  }, [])
+
+  const loadPreferences = async () => {
+    try {
+      const res = await userAPI.getPreferences()
+      const prefs = res.data || {}
+      setNotifications(prefs.notifications !== undefined ? prefs.notifications : true)
+      setLanguage(prefs.language || 'en')
+    } catch (err) {
+      console.error('Failed to load preferences', err)
+    }
+  }
+
+  const loadDarkMode = () => {
+    const saved = localStorage.getItem('darkMode')
+    setDarkMode(saved === 'true')
+    applyDarkMode(saved === 'true')
+  }
+
+  const applyDarkMode = (isDark) => {
+    if (isDark) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }
+
+  const handleDarkModeToggle = async () => {
+    const newValue = !darkMode
+    setDarkMode(newValue)
+    localStorage.setItem('darkMode', String(newValue))
+    applyDarkMode(newValue)
+    await savePreferences({ darkMode: newValue })
+  }
+
+  const handleNotificationsToggle = async () => {
+    const newValue = !notifications
+    setNotifications(newValue)
+    await savePreferences({ notifications: newValue })
+  }
+
+  const handleLanguageChange = async (value) => {
+    setLanguage(value)
+    await savePreferences({ language: value })
+  }
+
+  const savePreferences = async (updates) => {
+    try {
+      setLoading(true)
+      await userAPI.updatePreferences(updates)
+      toast.success('Preferences saved')
+    } catch (err) {
+      toast.error('Failed to save preferences')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-ubuntu-cream dark:bg-ubuntu-brown py-8">

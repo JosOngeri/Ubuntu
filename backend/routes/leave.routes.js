@@ -8,6 +8,7 @@ router.post('/request', auth, upload.single('attachment'), leaveController.reque
 router.put('/:id/upload-doc', auth, upload.single('attachment'), leaveController.uploadLeaveDocument);
 router.put('/:id/status', auth, leaveController.updateLeaveStatus);
 router.get('/balance/:employeeId', auth, leaveController.getLeaveBalance);
+router.get('/check-conflict', auth, leaveController.checkConflict);
 
 router.post('/', auth, upload.single('attachment'), leaveController.createLeave);
 router.get('/', auth, leaveController.getLeaves);

@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { leaveAPI, employeeAPI } from '../../services/api'
 import Card from '../../components/common/Card'
 import DashboardLayout from '../../components/DashboardLayout'
+import DateDropdown from '../../components/common/DateDropdown'
 import { toast } from 'react-toastify'
 
 const EmployeeLeaves = () => {
@@ -12,6 +13,8 @@ const EmployeeLeaves = () => {
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState({ type: 'annual', startDate: '', endDate: '', reason: '' })
+  const [startDate, setStartDate] = useState(null)
+  const [endDate, setEndDate] = useState(null)
   const [attachmentFile, setAttachmentFile] = useState(null)
   const [formError, setFormError] = useState('')
 
@@ -199,7 +202,18 @@ const EmployeeLeaves = () => {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Start Date *</label>
-              <input type="date" name="startDate" value={form.startDate} onChange={handleChange} className="mt-1 w-full rounded border p-2" />
+              <DateDropdown 
+                  selectedDate={startDate}
+                  onDateChange={(date) => {
+                    setStartDate(date);
+                    setForm({...form, startDate: date ? date.toISOString().split('T')[0] : ''});
+                  }}
+                  label="Start date"
+                  showYear={true}
+                  showMonth={true}
+                  showDay={true}
+                  yearRange={2}
+                />
               {isSick && form.startDate && (
                 <p className="mt-1 text-xs text-slate-500">
                   ℹ️ Sick leave must start today or yesterday
@@ -209,7 +223,18 @@ const EmployeeLeaves = () => {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">End Date *</label>
-              <input type="date" name="endDate" value={form.endDate} onChange={handleChange} className="mt-1 w-full rounded border p-2" />
+              <DateDropdown 
+                  selectedDate={endDate}
+                  onDateChange={(date) => {
+                    setEndDate(date);
+                    setForm({...form, endDate: date ? date.toISOString().split('T')[0] : ''});
+                  }}
+                  label="End date"
+                  showYear={true}
+                  showMonth={true}
+                  showDay={true}
+                  yearRange={2}
+                />
             </div>
 
             <div>

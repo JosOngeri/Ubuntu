@@ -30,7 +30,17 @@ const APPLICATION_SELECT_COLUMNS = `
   employment_history AS "employmentHistory",
   references AS "references",
   skills AS "skills",
-  declaration AS "declaration"
+  declaration AS "declaration",
+  offer_token AS "offerToken",
+  offer_sent_at AS "offerSentAt",
+  offer_status AS "offerStatus",
+  counter_offer_salary AS "counterOfferSalary",
+  final_salary AS "finalSalary",
+  interview_score AS "interviewScore",
+  interview_notes AS "interviewNotes",
+  interview_date AS "interviewDate",
+  offered_salary AS "offeredSalary",
+  interview_status AS "interviewStatus"
 `;
 
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
@@ -61,6 +71,23 @@ const ensureColumns = async () => {
   await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS manual_score DECIMAL`);
   await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS score_breakdown JSONB`);
   await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS reviewer_notes TEXT`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS personal_info JSONB`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS address_info JSONB`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS position_details JSONB`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS education JSONB`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS employment_history JSONB`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS skills JSONB`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS declaration JSONB`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS offer_token VARCHAR(255)`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS offer_sent_at TIMESTAMP`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS offer_status VARCHAR(50)`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS counter_offer_salary DECIMAL`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS final_salary DECIMAL`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS interview_score DECIMAL`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS interview_notes TEXT`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS interview_date TIMESTAMP`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS offered_salary DECIMAL`);
+  await pool.query(`ALTER TABLE ${JOB_APPLICATION_TABLE} ADD COLUMN IF NOT EXISTS interview_status VARCHAR(50)`);
 };
 
 const JobApplication = {
@@ -134,6 +161,10 @@ const JobApplication = {
   },
   async findById(id) {
     const res = await pool.query(`SELECT ${APPLICATION_SELECT_COLUMNS} FROM ${JOB_APPLICATION_TABLE} WHERE id = $1`, [id]);
+    return res.rows[0];
+  },
+  async findByOfferToken(token) {
+    const res = await pool.query(`SELECT ${APPLICATION_SELECT_COLUMNS} FROM ${JOB_APPLICATION_TABLE} WHERE offer_token = $1`, [token]);
     return res.rows[0];
   },
   async update(id, data) {

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { toast } from 'react-toastify'
 import DashboardLayout from '../../components/DashboardLayout'
+import DateDropdown from '../../components/common/DateDropdown'
 import { employeeAPI, leaveAPI } from '../../services/api'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSettings } from '../../contexts/SettingsContext'
@@ -25,6 +26,10 @@ export default function LeaveRequest() {
   const [error, setError] = useState('')
   const [attachment, setAttachment] = useState(null)
   const [form, setForm] = useState({ type: 'annual', startDate: '', endDate: '', reason: '' })
+  const [startDate, setStartDate] = useState(null)
+  const [endDate, setEndDate] = useState(null)
+  const [conflictWarning, setConflictWarning] = useState(null)
+  const [checkingConflict, setCheckingConflict] = useState(false)
 
   const leaveTypes = getLeaveTypes()
   const leaveTypeOptions = useMemo(() => {
@@ -103,6 +108,42 @@ export default function LeaveRequest() {
     if (error) setError('')
   }
 
+  const checkConflict = async (startDate, endDate) => {
+    if (!startDate || !endDate || !employee?.id && !employee?._id) {
+      setConflictWarning(null)
+      return
+    }
+
+    try {
+      setCheckingConflict(true)
+      const employeeId = employee.id || employee._id
+      const res = await leaveAPI.checkConflict(employeeId, startDate, endDate)
+      if (res.data?.conflict) {
+        setConflictWarning({
+          hasOverlap: res.data.has_overlap,
+          departmentConflictCount: res.data.department_conflict_count,
+          departmentConflictPct: res.data.department_conflict_pct,
+          departmentSize: res.data.department_size,
+        })
+      } else {
+        setConflictWarning(null)
+      }
+    } catch (err) {
+      console.log('Conflict check failed:', err)
+      setConflictWarning(null)
+    } finally {
+      setCheckingConflict(false)
+    }
+  }
+
+  useEffect(() => {
+    if (form.startDate && form.endDate) {
+      checkConflict(form.startDate, form.endDate)
+    } else {
+      setConflictWarning(null)
+    }
+  }, [form.startDate, form.endDate, employee])
+
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
@@ -131,6 +172,18 @@ export default function LeaveRequest() {
       toast.info('Long sick leave may require additional documentation.')
     }
 
+    if (conflictWarning?.hasOverlap) {
+      if (!confirm('Your requested dates overlap with an existing leave request. Do you want to proceed anyway?')) {
+        return
+      }
+    }
+
+    if (conflictWarning?.departmentConflictPct > 20) {
+      if (!confirm(`Your department will have ${conflictWarning.departmentConflictPct}% of staff on leave during this period. This may impact operations. Do you want to proceed?`)) {
+        return
+      }
+    }
+
     try {
       setSubmitting(true)
       const payload = {
@@ -145,6 +198,7 @@ export default function LeaveRequest() {
       toast.success('Leave request submitted')
       setForm({ type: 'annual', startDate: '', endDate: '', reason: '' })
       setAttachment(null)
+      setConflictWarning(null)
       const balanceResponse = await leaveAPI.getBalance(employee.id || employee._id)
       setBalance(balanceResponse.data || balance)
     } catch (submitError) {
@@ -194,6 +248,26 @@ export default function LeaveRequest() {
               </div>
             )}
 
+            {conflictWarning && (
+              <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900 dark:border-orange-900 dark:bg-orange-950 dark:text-orange-200">
+                {checkingConflict ? (
+                  <span>Checking for conflicts...</span>
+                ) : (
+                  <div className="space-y-1">
+                    {conflictWarning.hasOverlap && (
+                      <p className="font-medium">⚠️ Your requested dates overlap with an existing leave request.</p>
+                    )}
+                    {conflictWarning.departmentConflictPct > 0 && (
+                      <p>Department coverage: {conflictWarning.departmentConflictCount}/{conflictWarning.departmentSize} staff on leave ({conflictWarning.departmentConflictPct}%)</p>
+                    )}
+                    {conflictWarning.departmentConflictPct > 20 && (
+                      <p className="font-medium">⚠️ High department conflict - may impact operations.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {form.type === 'sick' && (
               <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900 dark:border-yellow-900 dark:bg-yellow-950 dark:text-yellow-200">
                 Sick leave requests should be supported by a medical certificate when required by policy.
@@ -201,26 +275,30 @@ export default function LeaveRequest() {
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">Start date</span>
-                <input
-                  type="date"
-                  name="startDate"
-                  value={form.startDate}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">End date</span>
-                <input
-                  type="date"
-                  name="endDate"
-                  value={form.endDate}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                />
-              </label>
+              <DateDropdown
+                selectedDate={startDate}
+                onDateChange={(date) => {
+                  setStartDate(date);
+                  setForm({...form, startDate: date ? date.toISOString().split('T')[0] : ''});
+                }}
+                label="Start date"
+                showYear={true}
+                showMonth={true}
+                showDay={true}
+                yearRange={2}
+              />
+              <DateDropdown
+                selectedDate={endDate}
+                onDateChange={(date) => {
+                  setEndDate(date);
+                  setForm({...form, endDate: date ? date.toISOString().split('T')[0] : ''});
+                }}
+                label="End date"
+                showYear={true}
+                showMonth={true}
+                showDay={true}
+                yearRange={2}
+              />
             </div>
 
             <label className="block">

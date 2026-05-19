@@ -635,11 +635,41 @@ const deleteLeave = async (req, res) => {
   }
 };
 
+const checkConflict = async (req, res) => {
+  try {
+    const { employeeId, startDate, endDate } = req.query;
+    if (!employeeId || !startDate || !endDate) {
+      return res.status(400).json({ error: 'Missing required parameters' });
+    }
+
+    const employee = await Employee.findById(normalizeId(employeeId));
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    const hasOverlap = await hasLeaveOverlap(employeeId, startDate, endDate);
+    const departmentConflictCount = employee.department ? await getDepartmentLeaveConflictCount(employee.department, startDate, endDate) : 0;
+    const departmentSize = employee.department ? await getDepartmentSize(employee.department) : 0;
+    const departmentConflictPct = departmentSize > 0 ? Number(((departmentConflictCount / departmentSize) * 100).toFixed(2)) : 0;
+
+    return res.json({
+      conflict: hasOverlap || departmentConflictCount > 0,
+      has_overlap: hasOverlap,
+      department_conflict_count: departmentConflictCount,
+      department_conflict_pct: departmentConflictPct,
+      department_size: departmentSize,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   requestLeave,
   uploadLeaveDocument,
   updateLeaveStatus,
   getLeaveBalance,
+  checkConflict,
   getLeaves,
   createLeave,
   updateLeave,

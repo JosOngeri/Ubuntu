@@ -253,6 +253,7 @@ const initDatabase = async () => {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+<<<<<<< HEAD
 
   // Insert sample data for contractors (only if user with id 1 exists)
   try {
@@ -285,6 +286,8 @@ const initDatabase = async () => {
   } catch (error) {
     console.log('Sample data insertion skipped or failed:', error.message);
   }
+=======
+>>>>>>> e0d606105d1d7f624841d6ab3676e4be8c38e71a
   await query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS postedby INTEGER`);
   await query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
   await query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
@@ -384,10 +387,6 @@ const initDatabase = async () => {
   await query(`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS performance JSONB`);
   await query(`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS documents JSONB`);
 
-  // Update attendance shift constraint to include Night
-  await query(`ALTER TABLE attendance DROP CONSTRAINT IF EXISTS attendance_shift_check`);
-  await query(`ALTER TABLE attendance ADD CONSTRAINT attendance_shift_check CHECK (shift IN ('Morning', 'Afternoon', 'Night'))`);
-
   await query(`
     CREATE TABLE IF NOT EXISTS attendance (
       id BIGSERIAL PRIMARY KEY,
@@ -407,6 +406,10 @@ const initDatabase = async () => {
       UNIQUE (employee_id, attendance_date)
     )
   `);
+
+  // Update attendance shift constraint to include Night
+  await query(`ALTER TABLE attendance DROP CONSTRAINT IF EXISTS attendance_shift_check`);
+  await query(`ALTER TABLE attendance ADD CONSTRAINT attendance_shift_check CHECK (shift IN ('Morning', 'Afternoon', 'Night'))`);
 
   await query(`
     CREATE TABLE IF NOT EXISTS kpi_definitions (

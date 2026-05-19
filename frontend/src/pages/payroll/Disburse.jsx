@@ -294,10 +294,11 @@ export default function PayrollDisburse() {
                 </div>
               ) : (
                 Object.entries(totalsByPeriod).map(([period, metrics]) => (
-                  <div key={period} className="rounded-xl bg-slate-50 p-4 dark:bg-slate-950">
+                  <div key={period} className="rounded-xl bg-slate-50 p-4 dark:bg-slate-950 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors" onClick={() => navigate('/admin/payroll', { state: { period } })}>
                     <div className="text-sm font-semibold text-slate-950 dark:text-white">{period}</div>
                     <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{metrics.count} payslip(s)</div>
                     <div className="mt-1 text-lg font-bold text-slate-950 dark:text-white">{formatMoney(metrics.netPay)}</div>
+                    <p className="text-xs text-blue-500 mt-1">Click to view →</p>
                   </div>
                 ))
               )}
@@ -321,21 +322,25 @@ export default function PayrollDisburse() {
       {activeTab === 'analytics' && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => setActiveTab('disbursements')}>
               <p className="text-sm text-slate-500 dark:text-slate-400 uppercase font-semibold">Total Payslips</p>
               <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">{stats.total}</p>
+              <p className="text-xs text-blue-500 mt-1">Click to view →</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => { setActiveTab('disbursements'); }}>
               <p className="text-sm text-slate-500 dark:text-slate-400 uppercase font-semibold">Approved</p>
               <p className="text-3xl font-bold text-blue-600 dark:text-blue-500 mt-2">{stats.approved}</p>
+              <p className="text-xs text-blue-500 mt-1">Click to view →</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => { setActiveTab('disbursements'); }}>
               <p className="text-sm text-slate-500 dark:text-slate-400 uppercase font-semibold">Paid</p>
               <p className="text-3xl font-bold text-green-600 dark:text-green-500 mt-2">{stats.paid}</p>
+              <p className="text-xs text-blue-500 mt-1">Click to view →</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => { setActiveTab('disbursements'); }}>
               <p className="text-sm text-slate-500 dark:text-slate-400 uppercase font-semibold">Failed</p>
               <p className="text-3xl font-bold text-red-600 dark:text-red-500 mt-2">{stats.failed}</p>
+              <p className="text-xs text-blue-500 mt-1">Click to view →</p>
             </div>
           </div>
 
@@ -348,19 +353,19 @@ export default function PayrollDisburse() {
                 <>
                   <div className="w-48 h-48 rounded-full shadow-inner mb-6" style={{ background: pieGradient }} />
                   <div className="w-full flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 p-2 rounded-lg transition-colors" onClick={() => { setActiveTab('disbursements'); }}>
                       <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-green-500"></span><span className="text-sm font-medium text-slate-700 dark:text-slate-300">Paid</span></div>
                       <span className="text-sm font-bold">{paidPct.toFixed(1)}% ({stats.paid})</span>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 p-2 rounded-lg transition-colors" onClick={() => { setActiveTab('disbursements'); }}>
                       <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-500"></span><span className="text-sm font-medium text-slate-700 dark:text-slate-300">Failed</span></div>
                       <span className="text-sm font-bold">{failedPct.toFixed(1)}% ({stats.failed})</span>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 p-2 rounded-lg transition-colors" onClick={() => { setActiveTab('disbursements'); }}>
                       <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-amber-500"></span><span className="text-sm font-medium text-slate-700 dark:text-slate-300">Processing</span></div>
                       <span className="text-sm font-bold">{processingPct.toFixed(1)}% ({stats.processing})</span>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 p-2 rounded-lg transition-colors" onClick={() => { setActiveTab('disbursements'); }}>
                       <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-blue-500"></span><span className="text-sm font-medium text-slate-700 dark:text-slate-300">Approved</span></div>
                       <span className="text-sm font-bold">{approvedPct.toFixed(1)}% ({stats.approved})</span>
                     </div>
@@ -376,7 +381,7 @@ export default function PayrollDisburse() {
                    <p className="text-slate-500 py-4">No period data available.</p>
                 ) : (
                   Object.entries(totalsByPeriod).map(([period, metrics]) => (
-                    <div key={period} className="flex flex-col gap-1">
+                    <div key={period} className="flex flex-col gap-1 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 p-2 rounded-lg transition-colors" onClick={() => navigate('/admin/payroll', { state: { period } })}>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{period}</span>
                         <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{formatMoney(metrics.netPay)}</span>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 
-const Table = ({ columns, data, loading = false, className = '' }) => {
+const Table = ({ columns, data, loading = false, className = '', sortField, sortDirection, onSort }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -47,9 +47,23 @@ const Table = ({ columns, data, loading = false, className = '' }) => {
               <th 
                 key={col.key} 
                 style={{ width: col.width }}
-                className="px-4 py-3 text-left font-semibold text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-700"
+                className={`px-4 py-3 text-left font-semibold text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-700 ${
+                  col.sortable ? 'cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors' : ''
+                }`}
+                onClick={() => col.sortable && onSort && onSort(col.key)}
               >
-                {col.label}
+                <div className="flex items-center gap-2">
+                  {col.label}
+                  {col.sortable && (
+                    <span className="text-slate-400">
+                      {sortField === col.key ? (
+                        sortDirection === 'asc' ? '↑' : '↓'
+                      ) : (
+                        '↕'
+                      )}
+                    </span>
+                  )}
+                </div>
               </th>
             ))}
           </tr>
