@@ -1,7 +1,7 @@
 const express = require('express');
 const { register, login, forgotPassword, resetPassword, adminResetPassword } = require('../controllers/auth.controller');
-const auth = require('../middleware/auth');
-const role = require('../middleware/role');
+const auth = require('../middleware/auth.middleware');
+const role = require('../middleware/roleMiddleware');
 
 const router = express.Router();
 

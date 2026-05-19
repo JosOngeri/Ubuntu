@@ -2,7 +2,7 @@ const Onboarding = require('../models/Onboarding.model');
 const Employee = require('../models/Employee.model');
 const Asset = require('../models/Asset.model');
 const User = require('../models/User.model');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const { sendEmail } = require('../utils/email');
 const crypto = require('crypto');
 

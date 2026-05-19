@@ -253,7 +253,6 @@ const initDatabase = async () => {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
-<<<<<<< HEAD
 
   // Insert sample data for contractors (only if user with id 1 exists)
   try {
@@ -286,8 +285,6 @@ const initDatabase = async () => {
   } catch (error) {
     console.log('Sample data insertion skipped or failed:', error.message);
   }
-=======
->>>>>>> e0d606105d1d7f624841d6ab3676e4be8c38e71a
   await query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS postedby INTEGER`);
   await query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
   await query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
