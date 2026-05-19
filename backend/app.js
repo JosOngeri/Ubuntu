@@ -4,11 +4,11 @@ const path = require('path');
 
 const app = express();
 
-
 const allowedOrigins = [
   'http://localhost:5177',
   'http://localhost:3000',
   'http://localhost:5177',
+  'https://ubuntuecolodge.vercel.app',
   process.env.FRONTEND_ORIGIN,
 ].filter(Boolean);
 
